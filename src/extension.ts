@@ -28,14 +28,15 @@ export function activate(context: vscode.ExtensionContext) {
 		});
 
 		const tools = vscode.lm.tools
-			.filter(t => t.id === 'getFontSize')
+			.filter(t => t.tags.includes('commander'))
 			.map<vscode.LanguageModelChatTool>(t => ({
 				name: t.id,
 				description: t.description,
+				parametersSchema: t.parametersSchema
 			}));
 
 		const messages = [
-			// vscode.LanguageModelChatMessage.User('You are a VS Code assistant and you are here to help user configuring VS Code.'),
+			vscode.LanguageModelChatMessage.User('You are a VS Code assistant and you are here to help user configuring VS Code.'),
 			vscode.LanguageModelChatMessage.User(request.prompt)
 		];
 
@@ -47,6 +48,20 @@ export function activate(context: vscode.ExtensionContext) {
 		async invoke(options: vscode.LanguageModelToolInvocationOptions<void>, token: vscode.CancellationToken) {
 			return {
 				'text/plain': `${vscode.workspace.getConfiguration('editor').get('fontSize')}px`,
+			};
+		},
+	}));
+
+	context.subscriptions.push(vscode.lm.registerTool('setFontSize', {
+		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ fontSize: any }>, token: vscode.CancellationToken) {
+			if (options.parameters.fontSize) {
+				await vscode.workspace.getConfiguration().update('editor.fontSize', options.parameters.fontSize, vscode.ConfigurationTarget.Global);
+				return {
+					'text/plain': 'Changed',
+				};
+			}
+			return {
+				'text/plain': 'Not able to change because the parameter is missing',
 			};
 		},
 	}));
@@ -67,29 +82,47 @@ async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMes
 
 	const modelResponse = await model.sendRequest(messages, { tools });
 
-	for await (const message of modelResponse.stream) {
+	try {
+		for await (const message of modelResponse.stream) {
 
-		if (message instanceof vscode.LanguageModelChatResponseTextPart) {
-			response.markdown(message.value);
-		}
-
-		else if (message instanceof vscode.LanguageModelChatResponseToolCallPart) {
-			const tool = vscode.lm.tools.find(t => t.id === message.name);
-			if (!tool) {
-				continue;
+			if (message instanceof vscode.LanguageModelChatResponseTextPart) {
+				response.markdown(message.value);
 			}
-			// TODO support prompt-tsx here
-			const requestedContentType = 'text/plain';
-			toolCalls.push({
-				call: message,
-				result: vscode.lm.invokeTool(tool.id, {
-					toolInvocationToken: request.toolInvocationToken,
-					requestedContentTypes: ['text/plain'],
-					parameters: undefined
-				}, token),
-				tool
-			});
+
+			else if (message instanceof vscode.LanguageModelChatResponseToolCallPart) {
+				const tool = vscode.lm.tools.find(t => t.id === message.name);
+				if (!tool) {
+					continue;
+				}
+				// TODO support prompt-tsx here
+				const requestedContentType = 'text/plain';
+
+				let parameters = undefined;
+				if (tool.parametersSchema) {
+					if (message.parameters) {
+						try {
+							parameters = JSON.parse(message.parameters);
+						} catch(e) {
+							console.warn('Failed to parse parameters for tool', tool.id, message.parameters);
+							continue;
+						}
+					}
+				}
+
+				toolCalls.push({
+					call: message,
+					result: vscode.lm.invokeTool(tool.id, {
+						toolInvocationToken: request.toolInvocationToken,
+						requestedContentTypes: ['text/plain'],
+						parameters
+					}, token),
+					tool
+				});
+			}
 		}
+	} catch (e) {
+		console.error('Error invoking model with tools', e);
+		throw e;
 	}
 
 	if (toolCalls.length) {

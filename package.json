@@ -29,11 +29,33 @@
         "description": "VS Code Commander"
       }
     ],
-    "languageModelTools": [{
-      "id": "getFontSize",
-      "displayName": "Get Font Size",
-      "modelDescription": "Get the editor font size in pixels"
-    }]
+    "languageModelTools": [
+      {
+        "id": "getFontSize",
+        "displayName": "Get Font Size",
+        "modelDescription": "Get the editor font size in pixels",
+        "tags": [
+          "commander"
+        ]
+      },
+      {
+        "id": "setFontSize",
+        "displayName": "Set Font Size",
+        "modelDescription": "Set the editor font size in pixels",
+        "tags": [
+          "commander"
+        ],
+        "parametersSchema": {
+          "type": "object",
+          "properties": {
+            "fontSize": {
+              "type": "number",
+              "description": "The editor font size in pixels"
+            }
+          }
+        }
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
