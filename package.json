@@ -31,26 +31,47 @@
     ],
     "languageModelTools": [
       {
-        "id": "getFontSize",
-        "displayName": "Get Font Size",
-        "modelDescription": "Get the editor font size in pixels",
+        "id": "searchSettings",
+        "displayName": "Search settings",
+        "modelDescription": "Use this tool to search for settings. This tool will return all settings that contain the provided keywords. It also includes the description, default value, current value and other possible values for each setting.",
+        "supportedContentTypes": [
+          "application/json"
+        ],
+        "parametersSchema": {
+          "type": "object",
+          "properties": {
+            "keywords": {
+              "type": "string",
+              "description": "Comma separated list of keywords to search for"
+            }
+          }
+        },
         "tags": [
           "commander"
         ]
       },
       {
-        "id": "setFontSize",
-        "displayName": "Set Font Size",
-        "modelDescription": "Set the editor font size in pixels",
+        "id": "updateSetting",
+        "displayName": "Update setting",
+        "modelDescription": "Use this tool to update a setting. This tool will update the setting with the provided value.",
         "tags": [
           "commander"
         ],
         "parametersSchema": {
           "type": "object",
           "properties": {
-            "fontSize": {
-              "type": "number",
-              "description": "The editor font size in pixels"
+            "key": {
+              "type": "string",
+              "description": "Id of the setting"
+            },
+            "value": {
+              "types": [
+                "string",
+                "number",
+                "boolean",
+                "object"
+              ],
+              "description": "The new value for the setting"
             }
           }
         }

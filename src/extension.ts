@@ -36,26 +36,46 @@ export function activate(context: vscode.ExtensionContext) {
 			}));
 
 		const messages = [
-			vscode.LanguageModelChatMessage.User('You are a VS Code assistant and you are here to help user configuring VS Code.'),
-			vscode.LanguageModelChatMessage.User(request.prompt)
+			vscode.LanguageModelChatMessage.User('You are a VS Code commander and your goal is to update settings by using the provided tools. Make sure the setting exists. Do not update the setting if you wont update the value. Never ask the user whether they think you should update the setting, just do it.'),
 		];
+
+		for (const history of context.history) {
+			if (history instanceof vscode.ChatRequestTurn) {
+				messages.push(vscode.LanguageModelChatMessage.User(history.prompt));
+			}
+
+			if (history instanceof vscode.ChatResponseTurn) {
+				for (const response of history.response) {
+					if (response instanceof vscode.ChatResponseMarkdownPart) {
+						messages.push(vscode.LanguageModelChatMessage.Assistant(response.value.value));
+					}
+				}
+			}
+		}
+
+		messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
 
 		await invokeModelWithTools(messages, model, tools, request, response, token);
 
 	});
 
-	context.subscriptions.push(vscode.lm.registerTool('getFontSize', {
+	context.subscriptions.push(vscode.lm.registerTool('searchSettings', {
 		async invoke(options: vscode.LanguageModelToolInvocationOptions<void>, token: vscode.CancellationToken) {
 			return {
-				'text/plain': `${vscode.workspace.getConfiguration('editor').get('fontSize')}px`,
+				'application/json': JSON.stringify([{
+					id: 'editor.fontSize',
+					value: vscode.workspace.getConfiguration().get('editor.fontSize'),
+					defaultValue: 12,
+					type: 'string'
+				}]),
 			};
 		},
 	}));
 
-	context.subscriptions.push(vscode.lm.registerTool('setFontSize', {
-		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ fontSize: any }>, token: vscode.CancellationToken) {
-			if (options.parameters.fontSize) {
-				await vscode.workspace.getConfiguration().update('editor.fontSize', options.parameters.fontSize, vscode.ConfigurationTarget.Global);
+	context.subscriptions.push(vscode.lm.registerTool('updateSetting', {
+		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key: string, value: any }>, token: vscode.CancellationToken) {
+			if (options.parameters.key && options.parameters.value) {
+				await vscode.workspace.getConfiguration().update(options.parameters.key, options.parameters.value, vscode.ConfigurationTarget.Global);
 				return {
 					'text/plain': 'Changed',
 				};
@@ -102,7 +122,7 @@ async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMes
 					if (message.parameters) {
 						try {
 							parameters = JSON.parse(message.parameters);
-						} catch(e) {
+						} catch (e) {
 							console.warn('Failed to parse parameters for tool', tool.id, message.parameters);
 							continue;
 						}
@@ -113,7 +133,7 @@ async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMes
 					call: message,
 					result: vscode.lm.invokeTool(tool.id, {
 						toolInvocationToken: request.toolInvocationToken,
-						requestedContentTypes: ['text/plain'],
+						requestedContentTypes: ['text/plain', 'application/json'],
 						parameters
 					}, token),
 					tool
@@ -133,7 +153,8 @@ async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMes
 			// NOTE that the result of calling a function is a special content type of a USER-message
 			const message = vscode.LanguageModelChatMessage.User('');
 
-			message.content2 = [new vscode.LanguageModelChatMessageToolResultPart(toolCall.call.toolCallId, (await toolCall.result)['text/plain']!)];
+			const toolResult = await toolCall.result;
+			message.content2 = [new vscode.LanguageModelChatMessageToolResultPart(toolCall.call.toolCallId, toolResult['application/json'] ?? toolResult['text/plain'])];
 			messages.push(message);
 		}
 
