@@ -42,7 +42,7 @@
           "properties": {
             "keywords": {
               "type": "string",
-              "description": "Comma separated list of keywords to search for"
+              "description": "List of keywords to search for the settings"
             }
           }
         },
@@ -102,5 +102,8 @@
     "webpack-cli": "^5.1.4",
     "@vscode/test-cli": "^0.0.9",
     "@vscode/test-electron": "^2.4.0"
+  },
+  "dependencies": {
+    "minisearch": "^7.1.0"
   }
 }
