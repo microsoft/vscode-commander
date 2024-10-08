@@ -21,11 +21,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 		const messages = [
 			vscode.LanguageModelChatMessage.User(
-				`You are a VS Code commander and your goal is to update settings by using the provided tools. 
-				Make sure the setting exists. Do not update the setting if you won't update the value. 
-				Never ask the user whether they think you should update the setting, just do it.
-				Tell the user which settings have been updated and what the new value is.
-				If the setting relies on other settings to be set, make sure to set those as well.`
+				`
+				You are a VS Code commander and your goal is to perform the action in VS Code by using the provided tools. 
+				You should search for the setting or command that you want to change or execute.
+				Prefer to use the setting when you can, and only use the command when the setting is not available.
+				When you are updating a setting make sure the setting exists. Do not update the setting if you won't update the value. 
+				If the setting relies on other settings to be set, make sure to set those as well.
+				Never ask the user whether they think you should perform the action, just do it.
+				Tell the user which settings have been updated and what the new value is or which commands have been executed.
+				`
 			),
 		];
 
