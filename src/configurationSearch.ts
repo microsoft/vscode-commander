@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
 import * as vscode from 'vscode';
 import MiniSearch from 'minisearch';
 
@@ -8,9 +13,7 @@ type Searchables<T> = { key: string, description: string, id: string, object: T 
 export type Setting = Configuration & { defaultValue: any; valueType: string; };
 export type Command = Configuration;
 
-const configurationSearch = Promise.resolve(setupSearch());
-
-async function setupSearch(): Promise<MiniSearch<Searchables<Setting | Command>>> {
+async function setupSearch(logger: vscode.LogOutputChannel): Promise<MiniSearch<Searchables<Setting | Command>>> {
 	const defaultSettingsSchemaResource = vscode.Uri.parse('vscode://schemas/settings/default');
 	const commandsSchemaResource = vscode.Uri.parse('vscode://schemas/keybindings');
 
@@ -23,7 +26,10 @@ async function setupSearch(): Promise<MiniSearch<Searchables<Setting | Command>>
 	const commands = JSON.parse(commandsSchemaResourceDocument.getText()) as CommandsRegistry;
 
 	const searchableSettings = getSearchableSettings(settings);
-	const searchableCommands = getSearchableCommands(commands);
+	logger.info(`Found ${searchableSettings.length} searchable settings`);
+
+	const searchableCommands = getSearchableCommands(commands, logger);
+	logger.info(`Found ${searchableCommands.length} searchable commands`);
 
 	const miniSearch = new MiniSearch<Searchables<Setting | Command>>({
 		fields: ['key', 'description'],
@@ -34,19 +40,24 @@ async function setupSearch(): Promise<MiniSearch<Searchables<Setting | Command>>
 	return miniSearch;
 }
 
-async function searchConfiguration(keywords: string): Promise<(Setting | Command)[]> {
+let setupSearchPromise: Promise<MiniSearch<Searchables<Setting | Command>>>;
+async function searchConfiguration(keywords: string, logger: vscode.LogOutputChannel): Promise<(Setting | Command)[]> {
+	if (!setupSearchPromise) {
+		setupSearchPromise = setupSearch(logger);
+	}
+
 	// search for exact match on key
-	let results = (await configurationSearch).search(keywords, { fields: ['key'], prefix: true, filter: (result => result.key === keywords) });
+	let results = (await setupSearchPromise).search(keywords, { fields: ['key'], prefix: true, filter: (result => result.key === keywords) });
 	if (results.length === 0) {
 		// search based on configuration id and description
-		results = (await configurationSearch).search(keywords, { fields: ['key', 'description'] });
+		results = (await setupSearchPromise).search(keywords, { fields: ['key', 'description'] });
 	}
 
 	return results.map(result => result.object);
 }
 
-export async function getConfigurationsFromKeywords(keywords: string, limit: number): Promise<(Setting | Command)[]> {
-	const results = (await searchConfiguration(keywords));
+export async function getConfigurationsFromKeywords(keywords: string, limit: number, logger: vscode.LogOutputChannel): Promise<(Setting | Command)[]> {
+	const results = (await searchConfiguration(keywords, logger));
 	return results.slice(0, limit);
 }
 
@@ -144,20 +155,25 @@ interface CommandNames {
 	enumDescriptions: (string | null)[];
 }
 
-function getSearchableCommands(commands: CommandsRegistry): Searchables<Command>[] {
+function getSearchableCommands(commands: CommandsRegistry, logger: vscode.LogOutputChannel): Searchables<Command>[] {
 	const commandNames = commands.definitions.commandNames;
-	const commandsSchemas = (commands as any).definitions.commandsSchemas;
-	const allOf = commandsSchemas.allOf;
-	const commandsWithArgs = new Set<string>(allOf.map((p: any) => p.if.properties.command.const));
+	const commandsWithArgs = new Set<string>();
+	for (const p of (commands as any).definitions.commandsSchemas.allOf) {
+		if (p.if?.properties?.command?.const) {
+			commandsWithArgs.add(p.if.properties.command.const);
+		}
+	}
 
 	return commandNames.enumDescriptions.map((commandDescription, id) => {
 		// only allow commands with escription
 		if (commandDescription === null) {
+			logger.trace(`Skipping command ${commandNames.enum[id]}: Does not have a description`);
 			return undefined;
 		}
 
 		const commandId = commandNames.enum[id];
 		if (commandsWithArgs.has(commandId)) {
+			logger.trace(`Skipping command ${commandId}: Has arguments`);
 			return undefined;
 		}
 

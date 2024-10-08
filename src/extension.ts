@@ -1,3 +1,8 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
 import * as vscode from 'vscode';
 import { getConfigurationsFromKeywords } from './configurationSearch';
 
@@ -58,7 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
 				return { 'text/plain': 'Unable to call searchConfigurations without keywords' };
 			}
 			logger.info('Keywords:', options.parameters.keywords);
-			const configurations = await getConfigurationsFromKeywords(options.parameters.keywords, 20);
+			const configurations = await getConfigurationsFromKeywords(options.parameters.keywords, 20, logger);
 			logger.info('Configurations:', configurations);
 
 			if (token.isCancellationRequested) {
