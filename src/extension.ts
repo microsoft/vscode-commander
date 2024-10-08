@@ -24,7 +24,8 @@ export function activate(context: vscode.ExtensionContext) {
 				`You are a VS Code commander and your goal is to update settings by using the provided tools. 
 				Make sure the setting exists. Do not update the setting if you won't update the value. 
 				Never ask the user whether they think you should update the setting, just do it.
-				Tell the user which settings have been updated and what the new value is.`
+				Tell the user which settings have been updated and what the new value is.
+				If the setting relies on other settings to be set, make sure to set those as well.`
 			),
 		];
 
@@ -65,14 +66,12 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 
 			return {
-				'application/json': JSON.stringify(configurations.map(c => ({
-					id: c.key,
-					description: c.description,
-					type: 'setting',
-					value: vscode.workspace.getConfiguration().get(c.key),
-					defaultValue: c.default,
-					valueType: c.type,
-				}))),
+				'application/json': JSON.stringify(configurations.map(c => {
+					if (c.type === 'setting') {
+						return { ...c, currentValue: vscode.workspace.getConfiguration().get(c.key) };
+					}
+					return c;
+				}))
 			};
 		},
 	}));
@@ -106,12 +105,16 @@ export function activate(context: vscode.ExtensionContext) {
 		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string }>, token: vscode.CancellationToken) {
 			// validate parameters
 			if (typeof options.parameters.key !== 'string' || !options.parameters.key.length) {
+				debugger;
 				return { 'text/plain': 'Not able to change because the parameter is missing or invalid' };
 			}
 
+			logger.info(`Running ${options.parameters.key}`);
+
 			try {
-				await vscode.commands.executeCommand(options.parameters.key);	
+				await vscode.commands.executeCommand(options.parameters.key);
 			} catch (e: any) {
+				debugger;
 				return { 'text/plain': `Wasn't able to run ${options.parameters.key} because of ${e.message}` };
 			}
 
