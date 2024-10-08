@@ -1,25 +1,7 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import { getConfigurationsFromKeywords } from './configurationSearch';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "vscode-commander" is now active!');
-
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('vscode-commander.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from vscode-commander!');
-	});
-
-	context.subscriptions.push(disposable);
 
 	// Create a chat participant
 	const chatParticipant = vscode.chat.createChatParticipant('c', async (request: vscode.ChatRequest, context: vscode.ChatContext, response: vscode.ChatResponseStream, token: vscode.CancellationToken) => {
@@ -56,32 +38,57 @@ export function activate(context: vscode.ExtensionContext) {
 		messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
 
 		await invokeModelWithTools(messages, model, tools, request, response, token);
-
 	});
 
 	context.subscriptions.push(vscode.lm.registerTool('searchSettings', {
-		async invoke(options: vscode.LanguageModelToolInvocationOptions<void>, token: vscode.CancellationToken) {
+		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ keywords?: string }>, token: vscode.CancellationToken) {
+			if (!options.parameters.keywords) {
+				return { 'text/plain': 'Unable to call searchSettings without keywords' };
+			}
+			console.log('Keywords:', options.parameters.keywords);
+			const configurations = await getConfigurationsFromKeywords(options.parameters.keywords, 7);
+			console.log('Configurations:', configurations);
+
+			if (token.isCancellationRequested) {
+				return { 'text/plain': 'Cancelled' };
+			}
+
+			if (configurations.length === 0) {
+				return { 'text/plain': 'No configuration found' };
+			}
+
 			return {
-				'application/json': JSON.stringify([{
-					id: 'editor.fontSize',
-					value: vscode.workspace.getConfiguration().get('editor.fontSize'),
-					defaultValue: 12,
-					type: 'string'
-				}]),
+				'application/json': JSON.stringify(configurations.map(c => ({
+					id: c.key,
+					value: vscode.workspace.getConfiguration().get(c.key),
+					defaultValue: c.default,
+					type: c.type
+				}))),
 			};
 		},
 	}));
 
 	context.subscriptions.push(vscode.lm.registerTool('updateSetting', {
-		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key: string, value: any }>, token: vscode.CancellationToken) {
-			if (options.parameters.key && options.parameters.value) {
-				await vscode.workspace.getConfiguration().update(options.parameters.key, options.parameters.value, vscode.ConfigurationTarget.Global);
-				return {
-					'text/plain': 'Changed',
-				};
+		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, value?: any }>, token: vscode.CancellationToken) {
+			// validate parameters
+			if (typeof options.parameters.key !== 'string' || !options.parameters.key.length || options.parameters.value === undefined) {
+				return { 'text/plain': 'Not able to change because the parameter is missing or invalid' };
 			}
+
+			const oldValue = vscode.workspace.getConfiguration().get(options.parameters.key);
+			if (oldValue === options.parameters.value) {
+				return { 'text/plain': `${options.parameters.key} is already set to ${options.parameters.value}` };
+			}
+
+			console.log('Setting', options.parameters.key, 'to', options.parameters.value);
+			try {
+				await vscode.workspace.getConfiguration().update(options.parameters.key, options.parameters.value, vscode.ConfigurationTarget.Global);
+			} catch (e: any) {
+				return { 'text/plain': `Wasn't able to set ${options.parameters.key} to ${options.parameters.value} because of ${e.message}` };
+			}
+
 			return {
-				'text/plain': 'Not able to change because the parameter is missing',
+				'text/plain': `Set ${options.parameters.key} to ${options.parameters.value}. Previously was ${oldValue}`,
 			};
 		},
 	}));
@@ -114,8 +121,6 @@ async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMes
 				if (!tool) {
 					continue;
 				}
-				// TODO support prompt-tsx here
-				const requestedContentType = 'text/plain';
 
 				let parameters = undefined;
 				if (tool.parametersSchema) {
