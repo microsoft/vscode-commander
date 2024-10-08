@@ -6,13 +6,30 @@
 import * as vscode from 'vscode';
 import { Configurations } from './configurationSearch';
 
+const SEARCH_TOOL_ID = 'searchConfigurations';
+
+const UPDATE_SETTING_TOOL_ID = 'updateSetting';
+const RUN_COMMAND_TOOL_ID = 'runCommand';
+const UNDO_SETTINGS_UPDATES_COMMAND_ID = 'vscode-commander.undo-settings-updates';
+
+const updatedSettings: { key: string, oldValue: any, newValue: any }[] = [];
+
 export function activate(context: vscode.ExtensionContext) {
 
 	const logger = vscode.window.createOutputChannel('VS Code Commander', { log: true });
 	const configurations = new Configurations(context, logger);
 
+	context.subscriptions.push(vscode.commands.registerCommand(UNDO_SETTINGS_UPDATES_COMMAND_ID, async () => {
+		for (const { key, oldValue } of updatedSettings) {
+			await vscode.workspace.getConfiguration().update(key, oldValue, vscode.ConfigurationTarget.Global);
+		}
+	}));
+
 	// Create a chat participant
 	const chatParticipant = vscode.chat.createChatParticipant('vscode-commader', async (request: vscode.ChatRequest, context: vscode.ChatContext, response: vscode.ChatResponseStream, token: vscode.CancellationToken) => {
+
+		updatedSettings.splice(0, updatedSettings.length);
+
 		const [model] = await vscode.lm.selectChatModels({
 			family: 'gpt-4o',
 		});
@@ -56,9 +73,16 @@ export function activate(context: vscode.ExtensionContext) {
 		messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
 
 		await invokeModelWithTools(messages, model, tools, request, response, logger, token);
+
+		if (updatedSettings.length) {
+			response.button({
+				command: UNDO_SETTINGS_UPDATES_COMMAND_ID,
+				title: 'Revert',
+			});
+		}
 	});
 
-	context.subscriptions.push(vscode.lm.registerTool('searchConfigurations', {
+	context.subscriptions.push(vscode.lm.registerTool(SEARCH_TOOL_ID, {
 		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ keywords?: string }>, token: vscode.CancellationToken) {
 			if (!options.parameters.keywords) {
 				return { 'text/plain': 'Unable to call searchConfigurations without keywords' };
@@ -87,7 +111,7 @@ export function activate(context: vscode.ExtensionContext) {
 		},
 	}));
 
-	context.subscriptions.push(vscode.lm.registerTool('updateSetting', {
+	context.subscriptions.push(vscode.lm.registerTool(UPDATE_SETTING_TOOL_ID, {
 		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, value?: any }>, token: vscode.CancellationToken) {
 			// validate parameters
 			if (typeof options.parameters.key !== 'string' || !options.parameters.key.length || options.parameters.value === undefined) {
@@ -101,7 +125,9 @@ export function activate(context: vscode.ExtensionContext) {
 
 			logger.info('Setting', options.parameters.key, 'to', options.parameters.value);
 			try {
+				const oldValue = vscode.workspace.getConfiguration().get(options.parameters.key);
 				await vscode.workspace.getConfiguration().update(options.parameters.key, options.parameters.value, vscode.ConfigurationTarget.Global);
+				updatedSettings.push({ key: options.parameters.key, oldValue, newValue: options.parameters.value });
 			} catch (e: any) {
 				return { 'text/plain': `Wasn't able to set ${options.parameters.key} to ${options.parameters.value} because of ${e.message}` };
 			}
@@ -112,7 +138,7 @@ export function activate(context: vscode.ExtensionContext) {
 		},
 	}));
 
-	context.subscriptions.push(vscode.lm.registerTool('runCommand', {
+	context.subscriptions.push(vscode.lm.registerTool(RUN_COMMAND_TOOL_ID, {
 		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string }>, token: vscode.CancellationToken) {
 			// validate parameters
 			if (typeof options.parameters.key !== 'string' || !options.parameters.key.length) {

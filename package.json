@@ -17,8 +17,8 @@
   "contributes": {
     "commands": [
       {
-        "command": "vscode-commander.helloWorld",
-        "title": "Hello World"
+        "command": "vscode-commander.undo-settings-updates",
+        "title": "Undo settings updates"
       }
     ],
     "chatParticipants": [
