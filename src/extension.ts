@@ -54,7 +54,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
 
-		await invokeModelWithTools(messages, model, tools, request, response, token);
+		await invokeModelWithTools(messages, model, tools, request, response, logger, token);
 	});
 
 	context.subscriptions.push(vscode.lm.registerTool('searchConfigurations', {
@@ -140,7 +140,7 @@ interface IToolCall {
 	result: Thenable<vscode.LanguageModelToolResult>;
 }
 
-async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMessage[], model: vscode.LanguageModelChat, tools: vscode.LanguageModelChatTool[], request: vscode.ChatRequest, response: vscode.ChatResponseStream, token: vscode.CancellationToken) {
+async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMessage[], model: vscode.LanguageModelChat, tools: vscode.LanguageModelChatTool[], request: vscode.ChatRequest, response: vscode.ChatResponseStream, logger: vscode.LogOutputChannel, token: vscode.CancellationToken) {
 
 	const messages = [...initialMessages];
 	const toolCalls: IToolCall[] = [];
@@ -166,7 +166,7 @@ async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMes
 						try {
 							parameters = JSON.parse(message.parameters);
 						} catch (e) {
-							console.warn('Failed to parse parameters for tool', tool.id, message.parameters);
+							logger.warn('Failed to parse parameters for tool', tool.id, message.parameters);
 							continue;
 						}
 					}
@@ -184,7 +184,7 @@ async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMes
 			}
 		}
 	} catch (e) {
-		console.error('Error invoking model with tools', e);
+		logger.error('Error invoking model with tools', e);
 		throw e;
 	}
 
@@ -204,7 +204,7 @@ async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMes
 		// IMPORTANT The prompt must end with a USER message (with no tool call)
 		messages.push(vscode.LanguageModelChatMessage.User(`Above is the result of calling the functions ${toolCalls.map(call => call.tool.id).join(', ')}. The user cannot see this result, so you should explain it to the user if referencing it in your answer.`));
 
-		return invokeModelWithTools(messages, model, tools, request, response, token);
+		return invokeModelWithTools(messages, model, tools, request, response, logger, token);
 	}
 }
 
