@@ -4,11 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { getConfigurationsFromKeywords } from './configurationSearch';
+import { Configurations } from './configurationSearch';
 
 export function activate(context: vscode.ExtensionContext) {
 
 	const logger = vscode.window.createOutputChannel('VS Code Commander', { log: true });
+	const configurations = new Configurations(context, logger);
 
 	// Create a chat participant
 	const chatParticipant = vscode.chat.createChatParticipant('vscode-commader', async (request: vscode.ChatRequest, context: vscode.ChatContext, response: vscode.ChatResponseStream, token: vscode.CancellationToken) => {
@@ -62,20 +63,21 @@ export function activate(context: vscode.ExtensionContext) {
 			if (!options.parameters.keywords) {
 				return { 'text/plain': 'Unable to call searchConfigurations without keywords' };
 			}
+
 			logger.info('Keywords:', options.parameters.keywords);
-			const configurations = await getConfigurationsFromKeywords(options.parameters.keywords, 20, logger);
-			logger.info('Configurations:', configurations);
+			const result = await configurations.search(options.parameters.keywords, 20);
+			logger.info('Configurations:', result.map(c => ({ id: c.key, type: c.type })));
 
 			if (token.isCancellationRequested) {
 				return { 'text/plain': 'Cancelled' };
 			}
 
-			if (configurations.length === 0) {
+			if (result.length === 0) {
 				return { 'text/plain': 'No configuration found' };
 			}
 
 			return {
-				'application/json': JSON.stringify(configurations.map(c => {
+				'application/json': JSON.stringify(result.map(c => {
 					if (c.type === 'setting') {
 						return { ...c, currentValue: vscode.workspace.getConfiguration().get(c.key) };
 					}
