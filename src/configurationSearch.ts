@@ -2,30 +2,18 @@ import * as vscode from 'vscode';
 import MiniSearch from 'minisearch';
 
 // Configuration
-type Configuration = { type: string };
-
-export type Setting = Configuration & { key: string, description: string; defaultValue: any; valueType: string; };
-
-// Command types
-export type Command = Configuration & { key: string, description: string };
-
-export function isCommand(object: any): object is Command {
-	return (
-		typeof object === 'object' &&
-		object !== null &&
-		typeof object.key === 'string' &&
-		typeof object.description === 'string'
-	);
-}
-
-// Searching types
+type Configuration = { type: string, key: string, description: string };
 type Searchables<T> = { key: string, description: string, id: string, object: T & Configuration };
+
+export type Setting = Configuration & { defaultValue: any; valueType: string; };
+export type Command = Configuration;
 
 const configurationSearch = Promise.resolve(setupSearch());
 
 async function setupSearch(): Promise<MiniSearch<Searchables<Setting | Command>>> {
 	const defaultSettingsSchemaResource = vscode.Uri.parse('vscode://schemas/settings/default');
 	const commandsSchemaResource = vscode.Uri.parse('vscode://schemas/keybindings');
+
 	const [defaultSettingsSchemaDocument, commandsSchemaResourceDocument] = await Promise.all([
 		vscode.workspace.openTextDocument(defaultSettingsSchemaResource),
 		vscode.workspace.openTextDocument(commandsSchemaResource)
@@ -58,7 +46,7 @@ async function searchConfiguration(keywords: string): Promise<(Setting | Command
 }
 
 export async function getConfigurationsFromKeywords(keywords: string, limit: number): Promise<(Setting | Command)[]> {
-	const results = (await searchConfiguration(keywords)).slice(0, limit);
+	const results = (await searchConfiguration(keywords));
 	return results.slice(0, limit);
 }
 
@@ -85,14 +73,16 @@ function getSearchableSettings(settings: SettingsDefaults): Searchables<Setting>
 		map((key, id) => {
 			let property = settings.properties[key];
 
+			// If property has a definition reference, retrieve it
 			const reference = property['$ref'];
 			if (reference !== undefined && reference.startsWith('#/$defs/')) {
 				property = followReference(reference, settings);
 			}
 
+			// Add enum descriptions if applicable
 			let description = property.markdownDescription ?? property.description ?? '';
-			if (property.type === 'string' && property.enum && (property.enumDescriptions || property.markdownEnumDescription)) {
-				description += '\nAllowed Values:\n' + enumsDescription(property.enum, property.enumDescriptions ?? property.markdownEnumDescription ?? []);
+			if (property.type === 'string' && property.enum) {
+				description += '\n' + enumsDescription(property.enum, property.enumDescriptions ?? property.markdownEnumDescription ?? []);
 			}
 
 			const searchable: Searchables<Setting> = {
@@ -113,10 +103,17 @@ function getSearchableSettings(settings: SettingsDefaults): Searchables<Setting>
 }
 
 function enumsDescription(enumKeys: string[], enumDescriptions: string[]): string {
-	return enumKeys.map((enumKey, index) => {
+	if (enumKeys.length === 0) {
+		return '';
+	}
+
+	const prefix = 'Allowed Enums:\n';
+	const enumsDescriptions = enumKeys.map((enumKey, index) => {
 		const enumDescription = enumDescriptions[index];
-		return `${enumKey}: ${enumDescription}`;
+		return enumKey + enumDescription ? `: ${enumDescription}` : '';
 	}).join('\n');
+
+	return prefix + enumsDescriptions;
 }
 
 function followReference(reference: string, settings: SettingsDefaults): Property {
@@ -151,22 +148,7 @@ function getSearchableCommands(commands: CommandsRegistry): Searchables<Command>
 	const commandNames = commands.definitions.commandNames;
 	const commandsSchemas = (commands as any).definitions.commandsSchemas;
 	const allOf = commandsSchemas.allOf;
-	const commandsWithArgs = new Set<string>();
-	for (const schema of allOf) {
-		const schemaIf = schema.if;
-		if (schemaIf) {
-			const schemaIfProperties = schemaIf.properties;
-			if (schemaIfProperties) {
-				const schemaIfPropertiesCommand = schemaIfProperties.command;
-				if (schemaIfPropertiesCommand) {
-					const schemaIfPropertiesCommandConst = schemaIfPropertiesCommand.const;
-					if (schemaIfPropertiesCommandConst) {
-						commandsWithArgs.add(schemaIfPropertiesCommandConst);
-					}
-				}
-			}
-		}
-	}
+	const commandsWithArgs = new Set<string>(allOf.map((p: any) => p.if.properties.command.const));
 
 	return commandNames.enumDescriptions.map((commandDescription, id) => {
 		// only allow commands with escription
