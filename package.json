@@ -23,7 +23,7 @@
     ],
     "chatParticipants": [
       {
-        "id": "c",
+        "id": "vscode-commader",
         "fullName": "VS Code Commander",
         "name": "commander",
         "description": "VS Code Commander"
@@ -31,9 +31,9 @@
     ],
     "languageModelTools": [
       {
-        "id": "searchSettings",
-        "displayName": "Search settings",
-        "modelDescription": "Use this tool to search for settings. This tool will return all settings that contain the provided keywords. It also includes the description, default value, current value and other possible values for each setting.",
+        "id": "searchConfigurations",
+        "displayName": "Search Configurations",
+        "modelDescription": "Use this tool to search for settings and commands. This will return all those settings and commands that contain the provided keywords. Each result will have a type to know if it is a setting or a command. A setting includes the description, default value, current value and other possible values and a command includes the description and possible arguments to be used to invoke the command.",
         "supportedContentTypes": [
           "application/json"
         ],
@@ -42,7 +42,7 @@
           "properties": {
             "keywords": {
               "type": "string",
-              "description": "List of keywords to search for the settings"
+              "description": "List of keywords to search for the settings and commands"
             }
           }
         },
@@ -72,6 +72,27 @@
                 "object"
               ],
               "description": "The new value for the setting"
+            }
+          }
+        }
+      },
+      {
+        "id": "runCommand",
+        "displayName": "Run command",
+        "modelDescription": "Use this tool to run a command. This tool will run the command with the provided arguments if there are any.",
+        "tags": [
+          "commander"
+        ],
+        "parametersSchema": {
+          "type": "object",
+          "properties": {
+            "key": {
+              "type": "string",
+              "description": "Id of the command"
+            },
+            "args": {
+              "type": "string",
+              "description": "arguments to pass to the command"
             }
           }
         }

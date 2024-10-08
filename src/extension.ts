@@ -3,8 +3,10 @@ import { getConfigurationsFromKeywords } from './configurationSearch';
 
 export function activate(context: vscode.ExtensionContext) {
 
+	const logger = vscode.window.createOutputChannel('VS Code Commander', { log: true });
+
 	// Create a chat participant
-	const chatParticipant = vscode.chat.createChatParticipant('c', async (request: vscode.ChatRequest, context: vscode.ChatContext, response: vscode.ChatResponseStream, token: vscode.CancellationToken) => {
+	const chatParticipant = vscode.chat.createChatParticipant('vscode-commader', async (request: vscode.ChatRequest, context: vscode.ChatContext, response: vscode.ChatResponseStream, token: vscode.CancellationToken) => {
 		const [model] = await vscode.lm.selectChatModels({
 			family: 'gpt-4o',
 		});
@@ -45,14 +47,14 @@ export function activate(context: vscode.ExtensionContext) {
 		await invokeModelWithTools(messages, model, tools, request, response, token);
 	});
 
-	context.subscriptions.push(vscode.lm.registerTool('searchSettings', {
+	context.subscriptions.push(vscode.lm.registerTool('searchConfigurations', {
 		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ keywords?: string }>, token: vscode.CancellationToken) {
 			if (!options.parameters.keywords) {
-				return { 'text/plain': 'Unable to call searchSettings without keywords' };
+				return { 'text/plain': 'Unable to call searchConfigurations without keywords' };
 			}
-			console.log('Keywords:', options.parameters.keywords);
+			logger.info('Keywords:', options.parameters.keywords);
 			const configurations = await getConfigurationsFromKeywords(options.parameters.keywords, 20);
-			console.log('Configurations:', configurations);
+			logger.info('Configurations:', configurations);
 
 			if (token.isCancellationRequested) {
 				return { 'text/plain': 'Cancelled' };
@@ -65,10 +67,11 @@ export function activate(context: vscode.ExtensionContext) {
 			return {
 				'application/json': JSON.stringify(configurations.map(c => ({
 					id: c.key,
+					description: c.description,
+					type: 'setting',
 					value: vscode.workspace.getConfiguration().get(c.key),
 					defaultValue: c.default,
-					type: c.type,
-					description: c.description
+					valueType: c.type,
 				}))),
 			};
 		},
@@ -86,7 +89,7 @@ export function activate(context: vscode.ExtensionContext) {
 				return { 'text/plain': `${options.parameters.key} is already set to ${options.parameters.value}` };
 			}
 
-			console.log('Setting', options.parameters.key, 'to', options.parameters.value);
+			logger.info('Setting', options.parameters.key, 'to', options.parameters.value);
 			try {
 				await vscode.workspace.getConfiguration().update(options.parameters.key, options.parameters.value, vscode.ConfigurationTarget.Global);
 			} catch (e: any) {
@@ -95,6 +98,25 @@ export function activate(context: vscode.ExtensionContext) {
 
 			return {
 				'text/plain': `Set ${options.parameters.key} to ${options.parameters.value}. Previously was ${oldValue}`,
+			};
+		},
+	}));
+
+	context.subscriptions.push(vscode.lm.registerTool('runCommand', {
+		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string }>, token: vscode.CancellationToken) {
+			// validate parameters
+			if (typeof options.parameters.key !== 'string' || !options.parameters.key.length) {
+				return { 'text/plain': 'Not able to change because the parameter is missing or invalid' };
+			}
+
+			try {
+				await vscode.commands.executeCommand(options.parameters.key);	
+			} catch (e: any) {
+				return { 'text/plain': `Wasn't able to run ${options.parameters.key} because of ${e.message}` };
+			}
+
+			return {
+				'text/plain': `Command ${options.parameters.key} is executed`,
 			};
 		},
 	}));
