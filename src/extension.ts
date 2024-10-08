@@ -18,7 +18,12 @@ export function activate(context: vscode.ExtensionContext) {
 			}));
 
 		const messages = [
-			vscode.LanguageModelChatMessage.User('You are a VS Code commander and your goal is to update settings by using the provided tools. Make sure the setting exists. Do not update the setting if you wont update the value. Never ask the user whether they think you should update the setting, just do it.'),
+			vscode.LanguageModelChatMessage.User(
+				`You are a VS Code commander and your goal is to update settings by using the provided tools. 
+				Make sure the setting exists. Do not update the setting if you won't update the value. 
+				Never ask the user whether they think you should update the setting, just do it.
+				Tell the user which settings have been updated and what the new value is.`
+			),
 		];
 
 		for (const history of context.history) {
@@ -46,7 +51,7 @@ export function activate(context: vscode.ExtensionContext) {
 				return { 'text/plain': 'Unable to call searchSettings without keywords' };
 			}
 			console.log('Keywords:', options.parameters.keywords);
-			const configurations = await getConfigurationsFromKeywords(options.parameters.keywords, 7);
+			const configurations = await getConfigurationsFromKeywords(options.parameters.keywords, 20);
 			console.log('Configurations:', configurations);
 
 			if (token.isCancellationRequested) {
@@ -62,7 +67,8 @@ export function activate(context: vscode.ExtensionContext) {
 					id: c.key,
 					value: vscode.workspace.getConfiguration().get(c.key),
 					defaultValue: c.default,
-					type: c.type
+					type: c.type,
+					description: c.description
 				}))),
 			};
 		},
