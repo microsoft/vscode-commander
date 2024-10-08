@@ -105,7 +105,6 @@ export function activate(context: vscode.ExtensionContext) {
 		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string }>, token: vscode.CancellationToken) {
 			// validate parameters
 			if (typeof options.parameters.key !== 'string' || !options.parameters.key.length) {
-				debugger;
 				return { 'text/plain': 'Not able to change because the parameter is missing or invalid' };
 			}
 
@@ -114,7 +113,6 @@ export function activate(context: vscode.ExtensionContext) {
 			try {
 				await vscode.commands.executeCommand(options.parameters.key);
 			} catch (e: any) {
-				debugger;
 				return { 'text/plain': `Wasn't able to run ${options.parameters.key} because of ${e.message}` };
 			}
 

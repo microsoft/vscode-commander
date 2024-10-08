@@ -26,7 +26,8 @@
         "id": "vscode-commader",
         "fullName": "VS Code Commander",
         "name": "commander",
-        "description": "VS Code Commander"
+        "description": "VS Code Commander",
+        "isSticky": true
       }
     ],
     "languageModelTools": [
