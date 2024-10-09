@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import * as jsonc from 'jsonc-parser';
 import MiniSearch from 'minisearch';
-import { followReference, IJSONSchema } from './jsonSchema';
+import { followReference, IJSONSchema, resolveReferences } from './jsonSchema';
 
 type Configuration = { type: string, key: string, description: string };
 type Searchables<T> = { key: string, description: string, id: string, object: T & Configuration };
@@ -120,8 +120,13 @@ export class Configurations {
 		const keybindingsSchema: IJSONSchema = JSON.parse(keybindingsSchemaResourceDocument.getText());
 		const defaultKeybindingsDocumennt: IUserFriendlyKeybinding[] = jsonc.parse(defaultKeybindingsDocument.getText());
 
+		// Find all commands with arguments
 		const commandsWithArgs = new Map<string, IJSONSchema>();
 		for (const p of keybindingsSchema.definitions?.['commandsSchemas']?.allOf ?? []) {
+
+			// Resolve all $ref in the command schema
+			resolveReferences(p, keybindingsSchema);
+
 			const commandId = p.if?.properties?.command?.const;
 			if (commandId === undefined) {
 				continue;
@@ -132,8 +137,14 @@ export class Configurations {
 				continue;
 			}
 
-			this.logger.trace(`Found command with args: ${commandId}, ${commandSchema}`);
-			commandsWithArgs.set(commandId, commandSchema);
+			const argumentsSchema = commandSchema.properties?.args;
+			if (!argumentsSchema) {
+				this.logger.info(`Skipping command ${commandId}: Does not have a args schema: ${JSON.stringify(commandSchema)}`);
+				continue;
+			}
+
+			this.logger.trace(`Found command with args: ${commandId}, ${argumentsSchema}`);
+			commandsWithArgs.set(commandId, argumentsSchema);
 		}
 
 		const searchableCommands: Searchables<Command>[] = [];
