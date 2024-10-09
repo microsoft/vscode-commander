@@ -99,3 +99,27 @@ export interface IJSONSchemaSnippet {
 	body?: any; // a object that will be JSON stringified
 	bodyText?: string; // an already stringified JSON object that can contain new lines (\n) and tabs (\t)
 }
+
+function parseReference($ref: string): string[] | undefined {
+	if (!$ref.startsWith('#/')) {
+		return undefined;
+	}
+	return $ref.split('/').slice(1);
+}
+
+export function followReference($ref: string, document: IJSONSchema): IJSONSchema | undefined {
+	const parsedRef = parseReference($ref);
+	if (!parsedRef) {
+		return undefined;
+	}
+
+	let current: any = document;
+	for (const part of parsedRef) {
+		if (current.hasOwnProperty(part)) {
+			current = current[part];
+		} else {
+			return undefined;
+		}
+	}
+	return current;
+}
