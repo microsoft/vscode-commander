@@ -10,8 +10,8 @@ import { followReference, IJSONSchema } from './jsonSchema';
 
 type Configuration = { type: string, key: string, description: string };
 type Searchables<T> = { key: string, description: string, id: string, object: T & Configuration };
-export type Setting = Configuration & { type: 'setting', defaultValue: any; valueType: string; };
-export type Command = Configuration & { type: 'command', keybinding?: string; };
+export type Setting = Configuration & { type: 'setting', defaultValue: any; valueType: string };
+export type Command = Configuration & { type: 'command', keybinding?: string, argsSchema?: IJSONSchema, hasArguments?: false };
 
 const settingsSchemaResource = vscode.Uri.parse('vscode://schemas/settings/default');
 const keybindingsSchemaResource = vscode.Uri.parse('vscode://schemas/keybindings');
@@ -120,11 +120,20 @@ export class Configurations {
 		const keybindingsSchema: IJSONSchema = JSON.parse(keybindingsSchemaResourceDocument.getText());
 		const defaultKeybindingsDocumennt: IUserFriendlyKeybinding[] = jsonc.parse(defaultKeybindingsDocument.getText());
 
-		const commandsWithArgs = new Set<string>();
+		const commandsWithArgs = new Map<string, IJSONSchema>();
 		for (const p of keybindingsSchema.definitions?.['commandsSchemas']?.allOf ?? []) {
-			if (p.if?.properties?.command?.const) {
-				commandsWithArgs.add(p.if.properties.command.const);
+			const commandId = p.if?.properties?.command?.const;
+			if (commandId === undefined) {
+				continue;
 			}
+
+			const commandSchema = p.then;
+			if (commandSchema === undefined) {
+				continue;
+			}
+
+			this.logger.trace(`Found command with args: ${commandId}, ${commandSchema}`);
+			commandsWithArgs.set(commandId, commandSchema);
 		}
 
 		const searchableCommands: Searchables<Command>[] = [];
@@ -144,12 +153,10 @@ export class Configurations {
 				this.logger.trace(`Skipping command ${commandId}: Does not have a description`);
 				continue;
 			}
-			if (commandsWithArgs.has(commandId)) {
-				this.logger.trace(`Skipping command ${commandId}: Has arguments`);
-				continue;
-			}
+
+			const argsSchema = commandsWithArgs.get(commandId);
 			searchableCommands.push({
-				id: `command:${index}`,
+				id: `command:${commandId}`,
 				key: commandId,
 				description: commandDescription,
 				object: {
@@ -157,6 +164,8 @@ export class Configurations {
 					description: commandDescription,
 					type: 'command',
 					keybinding: defaultKeybindingsDocumennt.find(keybinding => keybinding.command === commandId)?.key,
+					argsSchema: argsSchema,
+					hasArguments: argsSchema === undefined ? false : undefined,
 				}
 			});
 		}
