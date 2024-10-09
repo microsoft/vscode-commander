@@ -62,7 +62,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		messages.push(
 			vscode.LanguageModelChatMessage.User(
-`You are a VS Code commander, tasked with performing actions in VS Code using the provided tools. Always you should execute the following steps:
+				`You are a VS Code commander, tasked with performing actions in VS Code using the provided tools. Always you should execute the following steps:
 0. IMPORTANT: Never guess or rely from history or memory.
 1. Come up with keywords, phrases and synonyms that you think the user might use to describe the action they want to perform.
 2. Use the ${SEARCH_TOOL_ID} tool to find configurations that match with the keywords you found in step 1.

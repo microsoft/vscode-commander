@@ -123,3 +123,41 @@ export function followReference($ref: string, document: IJSONSchema): IJSONSchem
 	}
 	return current;
 }
+export function resolveReferences(partialSchema: any, documentSchema: IJSONSchema): void {
+	// Check for nested $ref properties and replace them with their definitions
+	// Recursive references are included only once to avoid infinite recursion
+
+	const checkAndReplaceRef = (schema: any, followedReferences: string[]) => {
+		if (typeof schema !== 'object' || schema === null) {
+			return;
+		}
+
+		for (const key in schema) {
+			if (key === '$ref' && typeof schema['$ref'] === 'string') {
+				// Only resolve a reference once to avoid infinite recursion and very large schemas
+				if (followedReferences.includes(schema['$ref'])) {
+					continue;
+				}
+
+				// Make a copy so a different path can also resolve this reference once
+				const newFollowedReferences = [...followedReferences, schema['$ref']];
+
+				// retrieve the referenced definition
+				const def = followReference(schema['$ref'], documentSchema);
+				delete schema['$ref'];
+				if (!def) {
+					continue;
+				}
+
+				for (const defKey in def) {
+					schema[defKey] = (def as any)[defKey];
+					checkAndReplaceRef(schema[defKey], newFollowedReferences);
+				}
+			} else {
+				checkAndReplaceRef(schema[key], followedReferences);
+			}
+		}
+	};
+
+	checkAndReplaceRef(partialSchema, []);
+}
