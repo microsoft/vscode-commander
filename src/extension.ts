@@ -164,7 +164,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 interface IToolCall {
 	tool: vscode.LanguageModelToolDescription;
-	call: vscode.LanguageModelChatResponseToolCallPart;
+	call: vscode.LanguageModelToolCallPart;
 	result: Thenable<vscode.LanguageModelToolResult>;
 }
 
@@ -178,11 +178,11 @@ async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMes
 	try {
 		for await (const message of modelResponse.stream) {
 
-			if (message instanceof vscode.LanguageModelChatResponseTextPart) {
+			if (message instanceof vscode.LanguageModelTextPart) {
 				response.markdown(message.value);
 			}
 
-			else if (message instanceof vscode.LanguageModelChatResponseToolCallPart) {
+			else if (message instanceof vscode.LanguageModelToolCallPart) {
 				const tool = vscode.lm.tools.find(t => t.id === message.name);
 				if (!tool) {
 					continue;
@@ -218,14 +218,14 @@ async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMes
 
 	if (toolCalls.length) {
 		const assistantMsg = vscode.LanguageModelChatMessage.Assistant('');
-		assistantMsg.content2 = toolCalls.map(toolCall => new vscode.LanguageModelChatResponseToolCallPart(toolCall.tool.id, toolCall.call.toolCallId, toolCall.call.parameters));
+		assistantMsg.content2 = toolCalls.map(toolCall => new vscode.LanguageModelToolCallPart(toolCall.tool.id, toolCall.call.toolCallId, toolCall.call.parameters));
 		messages.push(assistantMsg);
 		for (const toolCall of toolCalls) {
 			// NOTE that the result of calling a function is a special content type of a USER-message
 			const message = vscode.LanguageModelChatMessage.User('');
 
 			const toolResult = await toolCall.result;
-			message.content2 = [new vscode.LanguageModelChatMessageToolResultPart(toolCall.call.toolCallId, toolResult['application/json'] ?? toolResult['text/plain'])];
+			message.content2 = [new vscode.LanguageModelToolResultPart(toolCall.call.toolCallId, toolResult['application/json'] ?? toolResult['text/plain'])];
 			messages.push(message);
 		}
 
