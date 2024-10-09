@@ -36,7 +36,7 @@
         "displayName": "Search Configurations",
         "modelDescription": "Use this tool to search for settings and commands. This will return all those settings and commands that contain the provided keywords. Each result will have a type to know if it is a setting or a command. A setting includes the description, default value, current value and other possible values and a command includes the description and possible arguments to be used to invoke the command.",
         "supportedContentTypes": [
-          "application/json"
+          "application/vnd.codechat.prompt+json.1"
         ],
         "parametersSchema": {
           "type": "object",
@@ -112,20 +112,21 @@
     "test": "vscode-test"
   },
   "devDependencies": {
-    "@types/vscode": "^1.94.0",
     "@types/mocha": "^10.0.6",
     "@types/node": "20.x",
+    "@types/vscode": "^1.94.0",
     "@typescript-eslint/eslint-plugin": "^7.11.0",
     "@typescript-eslint/parser": "^7.11.0",
-    "eslint": "^8.57.0",
-    "typescript": "^5.4.5",
-    "ts-loader": "^9.5.1",
-    "webpack": "^5.92.0",
-    "webpack-cli": "^5.1.4",
     "@vscode/test-cli": "^0.0.9",
-    "@vscode/test-electron": "^2.4.0"
+    "@vscode/test-electron": "^2.4.0",
+    "eslint": "^8.57.0",
+    "ts-loader": "^9.5.1",
+    "typescript": "^5.4.5",
+    "webpack": "^5.92.0",
+    "webpack-cli": "^5.1.4"
   },
   "dependencies": {
+    "@vscode/prompt-tsx": "^0.2.11-alpha",
     "minisearch": "^7.1.0"
   }
 }
