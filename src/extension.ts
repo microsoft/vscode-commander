@@ -13,6 +13,7 @@ const RUN_COMMAND_TOOL_ID = 'runCommand';
 const UNDO_SETTINGS_UPDATES_COMMAND_ID = 'vscode-commander.undo-settings-updates';
 
 const updatedSettings: { key: string, oldValue: any, newValue: any }[] = [];
+const ranCommands: { key: string, arguments: any }[] = [];
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -29,6 +30,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const chatParticipant = vscode.chat.createChatParticipant('vscode-commader', async (request: vscode.ChatRequest, context: vscode.ChatContext, response: vscode.ChatResponseStream, token: vscode.CancellationToken) => {
 
 		updatedSettings.splice(0, updatedSettings.length);
+		ranCommands.splice(0, ranCommands.length);
 
 		const [model] = await vscode.lm.selectChatModels({
 			family: 'gpt-4o',
@@ -42,17 +44,7 @@ export function activate(context: vscode.ExtensionContext) {
 				parametersSchema: t.parametersSchema
 			}));
 
-		const messages = [
-			vscode.LanguageModelChatMessage.User(
-				`You are a VS Code commander, tasked with performing actions in VS Code using the provided tools.
-				Always search for settings and commands using the provided search tool before using them—never rely on memory.
-				Whenever possible, prefer to update a setting instead of using a command. Only use a command if the setting is unavailable.
-				Before updating a setting or running a command, verify that it exists. If you aren’t updating the value of a setting, don’t change it.
-				If a setting depends on other settings, ensure they are configured properly as well. 
-				Do not ask the user for permission—just execute the action.
-				Always inform the user about the setting and value you updated or the command you ran, including its keybinding if applicable.`
-			),
-		];
+		const messages = [];
 
 		for (const history of context.history) {
 			if (history instanceof vscode.ChatRequestTurn) {
@@ -68,14 +60,28 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		}
 
+		messages.push(
+			vscode.LanguageModelChatMessage.User(
+				`You are a VS Code commander, tasked with performing actions in VS Code using the provided tools. Always you should execute the following steps:
+0. IMPORTANT: Never guess or rely from history or memory.
+1. Come up with keywords, phrases and synonyms that you think the user might use to describe the action they want to perform.
+2. Use the ${SEARCH_TOOL_ID} tool to find configurations that match with the keywords you found in step 1.
+3. Look for the most appropriate setting or command that matches the user's intent. Prefer setting over command if available.
+4. Use the ${UPDATE_SETTING_TOOL_ID} tool to update the setting to the value the user requested. If a setting depends on other settings, ensure they are configured properly as well. If you aren’t updating the value of a setting, don’t change it.
+5. Use the ${RUN_COMMAND_TOOL_ID} tool to run the command. 
+6. Never ask the user whether they think you should perform the action or suggest actions, YOU JUST DO IT!!!
+7. Always inform the user about the setting and value you updated or the command you ran, including its keybinding if applicable.
+`
+			));
+
 		messages.push(vscode.LanguageModelChatMessage.User(request.prompt));
 
 		await invokeModelWithTools(messages, model, tools, request, response, logger, token);
 
-		if (updatedSettings.length) {
+		if (updatedSettings.length && !ranCommands.length) {
 			response.button({
 				command: UNDO_SETTINGS_UPDATES_COMMAND_ID,
-				title: 'Revert',
+				title: 'Undo',
 			});
 		}
 	});
@@ -87,7 +93,7 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 
 			logger.info('Keywords:', options.parameters.keywords);
-			const result = await configurations.search(options.parameters.keywords, 20);
+			const result = await configurations.search(options.parameters.keywords, 50);
 			logger.info('Configurations:', result.map(c => ({ id: c.key, type: c.type })));
 
 			if (token.isCancellationRequested) {
@@ -159,7 +165,7 @@ export function activate(context: vscode.ExtensionContext) {
 			logger.info(`Running ${options.parameters.key}` + (args ? ` with args ${JSON.stringify(args)}` : ''));
 
 			try {
-				await vscode.commands.executeCommand(options.parameters.key, ...args);
+				await vscode.commands.executeCommand(options.parameters.key);
 			} catch (e: any) {
 				return { 'text/plain': `Wasn't able to run ${options.parameters.key} because of ${e.message}` };
 			}
