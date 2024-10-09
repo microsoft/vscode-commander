@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import MiniSearch from 'minisearch';
-import { IJSONSchema } from './jsonSchema';
+import { followReference, IJSONSchema } from './jsonSchema';
 
 type Configuration = { type: string, key: string, description: string };
 type Searchables<T> = { key: string, description: string, id: string, object: T & Configuration };
@@ -70,13 +70,8 @@ export class Configurations {
 			let property: IJSONSchema | undefined = settings.properties[key];
 
 			// If property has a definition reference, retrieve it
-			if (property.$ref && property.$ref.startsWith('#/$defs/')) {
-				const referenceNumber = property.$ref.split('/').pop();
-				if (referenceNumber === undefined) {
-					property = undefined;
-				} else {
-					property = settings.$defs?.[referenceNumber];
-				}
+			if (property.$ref !== undefined) {
+				property = followReference(property.$ref, settings);
 			}
 
 			if (!property) {
