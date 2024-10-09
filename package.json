@@ -81,7 +81,7 @@
       {
         "id": "runCommand",
         "displayName": "Run command",
-        "modelDescription": "Use this tool to run a command. This tool will run the command with the provided arguments if there are any.",
+        "modelDescription": "Use this tool to run a command. This tool will run the command with the provided arguments if the command supports them. The arguments must follow the command arguments schema provided by the searchConfigurations.",
         "tags": [
           "commander"
         ],
@@ -92,9 +92,9 @@
               "type": "string",
               "description": "Id of the command"
             },
-            "args": {
+            "argumentsArray": {
               "type": "string",
-              "description": "arguments to pass to the command"
+              "description": "Arguments to pass to the command as JSON stringified array"
             }
           }
         }

@@ -98,13 +98,17 @@ export function activate(context: vscode.ExtensionContext) {
 				return { 'text/plain': 'No configuration found' };
 			}
 
+			const resultWithUpdatedValues = result.map(c => {
+				if (c.type === 'setting') {
+					return { ...c, currentValue: vscode.workspace.getConfiguration().get(c.key) };
+				}
+				return c;
+			});
+
+			logger.trace('Sending Configurations:', resultWithUpdatedValues);
+
 			return {
-				'application/json': JSON.stringify(result.map(c => {
-					if (c.type === 'setting') {
-						return { ...c, currentValue: vscode.workspace.getConfiguration().get(c.key) };
-					}
-					return c;
-				}))
+				'application/json': JSON.stringify(resultWithUpdatedValues)
 			};
 		},
 	}));
@@ -137,16 +141,25 @@ export function activate(context: vscode.ExtensionContext) {
 	}));
 
 	context.subscriptions.push(vscode.lm.registerTool(RUN_COMMAND_TOOL_ID, {
-		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string }>, token: vscode.CancellationToken) {
+		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken) {
 			// validate parameters
 			if (typeof options.parameters.key !== 'string' || !options.parameters.key.length) {
 				return { 'text/plain': 'Not able to change because the parameter is missing or invalid' };
 			}
 
-			logger.info(`Running ${options.parameters.key}`);
+			let args: any[] = [];
+			if (options.parameters.argumentsArray) {
+				try {
+					args = JSON.parse(options.parameters.argumentsArray);
+				} catch (e) {
+					logger.warn('Failed to parse args as JSON', e);
+				}
+			}
+
+			logger.info(`Running ${options.parameters.key}` + (args ? ` with args ${JSON.stringify(args)}` : ''));
 
 			try {
-				await vscode.commands.executeCommand(options.parameters.key);
+				await vscode.commands.executeCommand(options.parameters.key, ...args);
 			} catch (e: any) {
 				return { 'text/plain': `Wasn't able to run ${options.parameters.key} because of ${e.message}` };
 			}
