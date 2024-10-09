@@ -4,16 +4,25 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
+import * as jsonc from 'jsonc-parser';
 import MiniSearch from 'minisearch';
 import { followReference, IJSONSchema } from './jsonSchema';
 
 type Configuration = { type: string, key: string, description: string };
 type Searchables<T> = { key: string, description: string, id: string, object: T & Configuration };
-export type Setting = Configuration & { defaultValue: any; valueType: string; };
-export type Command = Configuration;
+export type Setting = Configuration & { type: 'setting', defaultValue: any; valueType: string; };
+export type Command = Configuration & { type: 'command', keybinding?: string; };
 
-const defaultSettingsDocument = vscode.Uri.parse('vscode://schemas/settings/default');
-const defaultKeybindingsDocument = vscode.Uri.parse('vscode://schemas/keybindings');
+const settingsSchemaResource = vscode.Uri.parse('vscode://schemas/settings/default');
+const keybindingsSchemaResource = vscode.Uri.parse('vscode://schemas/keybindings');
+const defaultKeybindingsResource = vscode.Uri.parse('vscode://defaultsettings/keybindings.json');
+
+interface IUserFriendlyKeybinding {
+	key: string;
+	command: string;
+	args?: any;
+	when?: string;
+}
 
 export class Configurations {
 
@@ -31,7 +40,9 @@ export class Configurations {
 		});
 		this.init();
 		context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(e => {
-			if (e.document.uri.toString() === defaultSettingsDocument.toString() || e.document.uri.toString() === defaultKeybindingsDocument.toString()) {
+			if (e.document.uri.toString() === settingsSchemaResource.toString()
+				|| e.document.uri.toString() === defaultKeybindingsResource.toString()
+				|| e.document.uri.toString() === keybindingsSchemaResource.toString()) {
 				this.initPromise = undefined;
 			}
 		}));
@@ -54,7 +65,7 @@ export class Configurations {
 	}
 
 	private async getSearchableSettings(): Promise<Searchables<Setting>[]> {
-		const defaultSettingsSchemaDocument = await vscode.workspace.openTextDocument(defaultSettingsDocument);
+		const defaultSettingsSchemaDocument = await vscode.workspace.openTextDocument(settingsSchemaResource);
 
 		const settings: IJSONSchema = JSON.parse(defaultSettingsSchemaDocument.getText());
 		if (!settings.properties) {
@@ -102,11 +113,15 @@ export class Configurations {
 	}
 
 	private async getSearchableCommands(): Promise<Searchables<Command>[]> {
-		const commandsSchemaResourceDocument = await vscode.workspace.openTextDocument(defaultKeybindingsDocument);
-		const commands: IJSONSchema = JSON.parse(commandsSchemaResourceDocument.getText());
+		const [defaultKeybindingsDocument, keybindingsSchemaResourceDocument] = await Promise.all([
+			vscode.workspace.openTextDocument(defaultKeybindingsResource),
+			vscode.workspace.openTextDocument(keybindingsSchemaResource),
+		]);
+		const keybindingsSchema: IJSONSchema = JSON.parse(keybindingsSchemaResourceDocument.getText());
+		const defaultKeybindingsDocumennt: IUserFriendlyKeybinding[] = jsonc.parse(defaultKeybindingsDocument.getText());
 
 		const commandsWithArgs = new Set<string>();
-		for (const p of commands.definitions?.['commandsSchemas']?.allOf ?? []) {
+		for (const p of keybindingsSchema.definitions?.['commandsSchemas']?.allOf ?? []) {
 			if (p.if?.properties?.command?.const) {
 				commandsWithArgs.add(p.if.properties.command.const);
 			}
@@ -114,7 +129,7 @@ export class Configurations {
 
 		const searchableCommands: Searchables<Command>[] = [];
 
-		const commandNames = commands.definitions?.['commandNames'];
+		const commandNames = keybindingsSchema.definitions?.['commandNames'];
 		if (!commandNames?.enumDescriptions) {
 			return searchableCommands;
 		}
@@ -141,6 +156,7 @@ export class Configurations {
 					key: commandId,
 					description: commandDescription,
 					type: 'command',
+					keybinding: defaultKeybindingsDocumennt.find(keybinding => keybinding.command === commandId)?.key,
 				}
 			});
 		}
