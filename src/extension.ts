@@ -166,15 +166,18 @@ export function activate(context: vscode.ExtensionContext) {
 
 			logger.info(`Running ${options.parameters.key}` + (args ? ` with args ${JSON.stringify(args)}` : ''));
 
+			let response: unknown = undefined;
 			try {
-				await vscode.commands.executeCommand(options.parameters.key, ...args);
+				response = await vscode.commands.executeCommand(options.parameters.key, ...args);
 				ranCommands.push({ key: options.parameters.key, arguments: options.parameters.argumentsArray });
 			} catch (e: any) {
 				return { 'text/plain': `Wasn't able to run ${options.parameters.key} because of ${e.message}` };
 			}
 
 			return {
-				'text/plain': `Command ${options.parameters.key} is executed`,
+				'text/plain': response === undefined
+					? `Command ${options.parameters.key} has been executed`
+					: `The result of executing the command ${options.parameters.key} is ${JSON.stringify(response)}`,
 			};
 		},
 	}));
