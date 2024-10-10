@@ -28,14 +28,14 @@ extends:
       - script: npm package
         displayName: Compile
 
-      - script: >
-          node ./scripts/prepare-prerelease-build.js
-        displayName: Generate package.json
+      # - script: >
+      #     node ./scripts/prepare-prerelease-build.js
+      #   displayName: Generate package.json
 
-      - script: |
-          mv ./package.json ./package.json.bak
-          mv ./package.prerelease.json ./package.json
-        displayName: Override package.json
+      # - script: |
+      #     mv ./package.json ./package.json.bak
+      #     mv ./package.prerelease.json ./package.json
+      #   displayName: Override package.json
 
     tsa:
       config:
