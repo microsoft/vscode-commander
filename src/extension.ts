@@ -111,10 +111,12 @@ export function activate(context: vscode.ExtensionContext) {
 				return c;
 			});
 
-			logger.trace('Sending Configurations:', resultWithUpdatedValues);
+			const stringifiedResponse = JSON.stringify(resultWithUpdatedValues);
+
+			logger.trace('Sending Configurations:', stringifiedResponse);
 
 			return {
-				'application/json': JSON.stringify(resultWithUpdatedValues)
+				'application/json': stringifiedResponse
 			};
 		},
 	}));

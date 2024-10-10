@@ -175,7 +175,7 @@ export class Configurations {
 					description: commandDescription,
 					type: 'command',
 					keybinding: defaultKeybindingsDocumennt.find(keybinding => keybinding.command === commandId)?.key,
-					argsSchema: argsSchema,
+					argsSchema,
 					hasArguments: argsSchema === undefined ? false : undefined,
 				}
 			});

@@ -151,8 +151,10 @@ export function resolveReferences(partialSchema: any, documentSchema: IJSONSchem
 
 				for (const defKey in def) {
 					schema[defKey] = (def as any)[defKey];
-					checkAndReplaceRef(schema[defKey], newFollowedReferences);
 				}
+				// rerun the for the same schema again including the resolved referecne
+				checkAndReplaceRef(schema, newFollowedReferences);
+				break;
 			} else {
 				checkAndReplaceRef(schema[key], followedReferences);
 			}
