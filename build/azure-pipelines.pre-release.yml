@@ -1,4 +1,3 @@
-# Run on a schedule
 trigger: none
 pr: none
 
@@ -10,11 +9,11 @@ resources:
       ref: main
       endpoint: Monaco
 
-parameters:
-  - name: publishExtension
-    displayName: 🚀 Publish Extension
-    type: boolean
-    default: false
+# parameters:
+#   - name: publishExtension
+#     displayName: 🚀 Publish Extension
+#     type: boolean
+#     default: false
 
 extends:
   template: azure-pipelines/extension/pre-release.yml@templates
@@ -29,14 +28,14 @@ extends:
       - script: npm package
         displayName: Compile
 
-      - script: >
-          node ./scripts/prepare-prerelease-build.js
-        displayName: Generate package.json
+      # - script: >
+      #     node ./scripts/prepare-prerelease-build.js
+      #   displayName: Generate package.json
 
-      - script: |
-          mv ./package.json ./package.json.bak
-          mv ./package.prerelease.json ./package.json
-        displayName: Override package.json
+      # - script: |
+      #     mv ./package.json ./package.json.bak
+      #     mv ./package.prerelease.json ./package.json
+      #   displayName: Override package.json
 
     tsa:
       config:
@@ -44,4 +43,4 @@ extends:
         serviceTreeID: '1788a767-5861-45fb-973b-c686b67c5541'
       enabled: true
 
-    publishExtension: ${{ parameters.publishExtension }}
+    # publishExtension: ${{ parameters.publishExtension }}
