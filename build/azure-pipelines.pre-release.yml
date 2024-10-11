@@ -19,23 +19,29 @@ extends:
   template: azure-pipelines/extension/pre-release.yml@templates
   parameters:
     ghCreateRelease: false
-    publishExtension: false
+    publishExtension: ${{ parameters.publishExtension }}
 
     buildSteps:
       - script: npm ci
         displayName: Install dependencies
 
+      - script: npm run lint
+        displayName: Linting
+
+      # - script: npm run test
+      #   displayName: Run Tests
+
       - script: npm run package
         displayName: Package
 
-      # - script: >
-      #     node ./scripts/prepare-prerelease-build.js
-      #   displayName: Generate package.json
+      - script: >
+          node ./scripts/prepare-prerelease-build.js
+        displayName: Generate package.json
 
-      # - script: |
-      #     mv ./package.json ./package.json.bak
-      #     mv ./package.prerelease.json ./package.json
-      #   displayName: Override package.json
+      - script: |
+          mv ./package.json ./package.json.bak
+          mv ./package.prerelease.json ./package.json
+        displayName: Override package.json
 
     tsa:
       config:
