@@ -5,11 +5,10 @@
 
 import * as vscode from 'vscode';
 import { Configurations } from './configurationSearch';
+import { SearchConfigurations } from './tools/searchConfigurations';
+import { UpdateSettings } from './tools/updateSettings';
+import { RunCommands } from './tools/runCommands';
 
-const SEARCH_TOOL_ID = 'searchConfigurations';
-
-const UPDATE_SETTING_TOOL_ID = 'updateSetting';
-const RUN_COMMAND_TOOL_ID = 'runCommand';
 const UNDO_SETTINGS_UPDATES_COMMAND_ID = 'vscode-commander.undo-settings-updates';
 
 const updatedSettings: { key: string, oldValue: any, newValue: any }[] = [];
@@ -27,7 +26,7 @@ export function activate(context: vscode.ExtensionContext) {
 	}));
 
 	// Create a chat participant
-	const chatParticipant = vscode.chat.createChatParticipant('vscode-commader', async (request: vscode.ChatRequest, context: vscode.ChatContext, response: vscode.ChatResponseStream, token: vscode.CancellationToken) => {
+	context.subscriptions.push(vscode.chat.createChatParticipant('vscode-commader', async (request: vscode.ChatRequest, context: vscode.ChatContext, response: vscode.ChatResponseStream, token: vscode.CancellationToken) => {
 
 		updatedSettings.splice(0, updatedSettings.length);
 		ranCommands.splice(0, ranCommands.length);
@@ -63,11 +62,11 @@ export function activate(context: vscode.ExtensionContext) {
 				`You are a VS Code commander, tasked with performing actions in VS Code using the provided tools. Always you should execute the following steps:
 0. IMPORTANT: Never guess or rely from history or memory.
 1. Come up with keywords, phrases and synonyms that you think the user might use to describe the action they want to perform.
-2. Use the ${SEARCH_TOOL_ID} tool to find configurations that match with the keywords you found in step 1.
+2. Use the ${SearchConfigurations.ID} tool to find configurations that match with the keywords you found in step 1.
 3. Look for the most appropriate setting or command that matches the user's intent. Prefer setting over command if available.
-4. Use the ${UPDATE_SETTING_TOOL_ID} tool to update the setting to the value the user requested.
+4. Use the ${UpdateSettings.ID} tool to update the setting to the value the user requested.
 5. If you are running command with 'vscode.setEditorLayout' id, use step by step reasoning to come up with the arguments explaining to the user.
-6. Use the ${RUN_COMMAND_TOOL_ID} tool to run a command found using the ${SEARCH_TOOL_ID}. 
+6. Use the ${RunCommands.ID} tool to run a command found using the ${SearchConfigurations.ID}. 
 7. Never ask the user whether they think you should perform the action or suggest actions, YOU JUST DO IT!!!
 8. Always inform the user about the setting and the value you updated or the command and the arguments you ran, including its keybinding if applicable.
 `
@@ -83,105 +82,11 @@ export function activate(context: vscode.ExtensionContext) {
 				title: 'Undo',
 			});
 		}
-	});
-
-	context.subscriptions.push(vscode.lm.registerTool(SEARCH_TOOL_ID, {
-		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ keywords?: string }>, token: vscode.CancellationToken) {
-			if (!options.parameters.keywords) {
-				return { 'text/plain': 'Unable to call searchConfigurations without keywords' };
-			}
-
-			logger.info('Keywords:', options.parameters.keywords);
-			const result = await configurations.search(options.parameters.keywords, 50);
-			logger.info('Configurations:', result.map(c => ({ id: c.key, type: c.type })));
-
-			if (token.isCancellationRequested) {
-				return { 'text/plain': 'Cancelled' };
-			}
-
-			if (result.length === 0) {
-				return { 'text/plain': 'No configuration found' };
-			}
-
-			const resultWithUpdatedValues = result.map(c => {
-				if (c.type === 'setting') {
-					return { ...c, currentValue: vscode.workspace.getConfiguration().get(c.key) };
-				}
-				return c;
-			});
-
-			const stringifiedResponse = JSON.stringify(resultWithUpdatedValues);
-
-			logger.trace('Sending Configurations:', stringifiedResponse);
-
-			return {
-				'application/json': stringifiedResponse
-			};
-		},
 	}));
 
-	context.subscriptions.push(vscode.lm.registerTool(UPDATE_SETTING_TOOL_ID, {
-		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, value?: any }>, token: vscode.CancellationToken) {
-			// validate parameters
-			if (typeof options.parameters.key !== 'string' || !options.parameters.key.length || options.parameters.value === undefined) {
-				return { 'text/plain': 'Not able to change because the parameter is missing or invalid' };
-			}
-
-			const oldValue = vscode.workspace.getConfiguration().get(options.parameters.key);
-			if (oldValue === options.parameters.value) {
-				return { 'text/plain': `${options.parameters.key} is already set to ${options.parameters.value}` };
-			}
-
-			logger.info('Setting', options.parameters.key, 'to', options.parameters.value);
-			try {
-				const oldValue = vscode.workspace.getConfiguration().get(options.parameters.key);
-				await vscode.workspace.getConfiguration().update(options.parameters.key, options.parameters.value, vscode.ConfigurationTarget.Global);
-				updatedSettings.push({ key: options.parameters.key, oldValue, newValue: options.parameters.value });
-			} catch (e: any) {
-				return { 'text/plain': `Wasn't able to set ${options.parameters.key} to ${options.parameters.value} because of ${e.message}` };
-			}
-
-			return {
-				'text/plain': `Set ${options.parameters.key} to ${options.parameters.value}. Previously was ${oldValue}`,
-			};
-		},
-	}));
-
-	context.subscriptions.push(vscode.lm.registerTool(RUN_COMMAND_TOOL_ID, {
-		async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken) {
-			// validate parameters
-			if (typeof options.parameters.key !== 'string' || !options.parameters.key.length) {
-				return { 'text/plain': 'Not able to change because the parameter is missing or invalid' };
-			}
-
-			let args: any[] = [];
-			if (options.parameters.argumentsArray) {
-				try {
-					args = JSON.parse(options.parameters.argumentsArray);
-				} catch (e) {
-					logger.warn('Failed to parse args as JSON', e);
-				}
-			}
-
-			logger.info(`Running ${options.parameters.key}` + (args ? ` with args ${JSON.stringify(args)}` : ''));
-
-			let response: unknown = undefined;
-			try {
-				response = await vscode.commands.executeCommand(options.parameters.key, ...args);
-				ranCommands.push({ key: options.parameters.key, arguments: options.parameters.argumentsArray });
-			} catch (e: any) {
-				return { 'text/plain': `Wasn't able to run ${options.parameters.key} because of ${e.message}` };
-			}
-
-			return {
-				'text/plain': response === undefined
-					? `Command ${options.parameters.key} has been executed`
-					: `The result of executing the command ${options.parameters.key} is ${JSON.stringify(response)}`,
-			};
-		},
-	}));
-
-	context.subscriptions.push(chatParticipant);
+	context.subscriptions.push(vscode.lm.registerTool(SearchConfigurations.ID, new SearchConfigurations(configurations, logger)));
+	context.subscriptions.push(vscode.lm.registerTool(UpdateSettings.ID, new UpdateSettings(updatedSettings, logger)));
+	context.subscriptions.push(vscode.lm.registerTool(RunCommands.ID, new RunCommands(ranCommands, logger)));
 }
 
 async function getModel(family: string) {

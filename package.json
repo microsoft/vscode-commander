@@ -53,29 +53,17 @@
         ]
       },
       {
-        "id": "updateSetting",
-        "displayName": "Update setting",
-        "modelDescription": "Use this tool to update a setting. This tool will update the setting with the provided value.",
+        "id": "updateSettings",
+        "displayName": "Update settings",
+        "modelDescription": "Use this tool to update settings. This tool support bulk updates, so you can update multiple settings at once. Provide the settings to update as a key value pair of setting id and new value. The value of the setting must follow the setting schema.",
         "tags": [
           "commander"
         ],
         "parametersSchema": {
           "type": "object",
-          "properties": {
-            "key": {
-              "type": "string",
-              "description": "Id of the setting"
-            },
-            "value": {
-              "types": [
-                "string",
-                "number",
-                "boolean",
-                "object"
-              ],
-              "description": "The new value for the setting"
-            }
-          }
+          "description": "Dictionary of settings to update",
+          "additionalProperties": true,
+          "properties": {}
         }
       },
       {
@@ -102,8 +90,8 @@
     ]
   },
   "extensionDependencies": [
-		"GitHub.copilot-chat"
-	],
+    "GitHub.copilot-chat"
+  ],
   "scripts": {
     "vscode:prepublish": "npm run package",
     "compile": "webpack",
