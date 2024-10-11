@@ -23,8 +23,8 @@ extends:
   parameters:
     # l10nSourcePaths: ./src
     buildSteps:
-      - script: npm install
-        displayName: npm install
+      - script: npm ci
+        displayName: Install Dependencies
 
       - script: npm run lint
         displayName: Linting

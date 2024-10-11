@@ -24,7 +24,6 @@ extends:
     buildSteps:
       - script: npm ci
         displayName: Install dependencies
-        retryCountOnTaskFailure: 3
 
       - script: npm run package
         displayName: Package
