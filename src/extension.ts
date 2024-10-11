@@ -66,7 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
 1. Come up with keywords, phrases and synonyms that you think the user might use to describe the action they want to perform.
 2. Use the ${SearchConfigurations.ID} tool to find configurations that match with the keywords you found in step 1.
 3. Look for the most appropriate setting or command that matches the user's intent. Prefer setting over command if available.
-4. Use the ${UpdateSettings.ID} tool to update the setting to the value the user requested.
+4. Use the ${UpdateSettings.ID} tool to update the setting to the value the user requested. If there are multiple settings to update, update them in bulk.
 5. If you are running command with 'vscode.setEditorLayout' id, use step by step reasoning to come up with the arguments explaining to the user.
 6. Use the ${RunCommands.ID} tool to run a command found using the ${SearchConfigurations.ID}. 
 7. Never ask the user whether they think you should perform the action or suggest actions, YOU JUST DO IT!!!
