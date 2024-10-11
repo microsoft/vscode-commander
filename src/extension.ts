@@ -18,7 +18,9 @@ const ranCommands: { key: string, arguments: any }[] = [];
 export function activate(context: vscode.ExtensionContext) {
 
 	const logger = vscode.window.createOutputChannel('VS Code Commander', { log: true });
-	const configurations = new Configurations(context, logger);
+	const configurations = new Configurations(logger);
+
+	context.subscriptions.push(configurations);
 
 	context.subscriptions.push(vscode.commands.registerCommand(UNDO_SETTINGS_UPDATES_COMMAND_ID, async () => {
 		for (const { key, oldValue } of updatedSettings) {

@@ -1,15 +1,40 @@
-import * as assert from 'assert';
+import assert from 'assert';
+import { MockConfigurations } from './mocks';
 
-// You can import and use all API from the 'vscode' module
-// as well as import your extension to test it
-import * as vscode from 'vscode';
-// import * as myExtension from '../../extension';
+suite('Configuration Search', () => {
 
-suite('Extension Test Suite', () => {
-	vscode.window.showInformationMessage('Start all tests.');
+	const configurationSearch = new MockConfigurations();
 
-	test('Sample test', () => {
-		assert.strictEqual(-1, [1, 2, 3].indexOf(5));
-		assert.strictEqual(-1, [1, 2, 3].indexOf(0));
+	test('Exact command id match', async () => {
+		const configurations = await configurationSearch.search('vscode.setEditorLayout', 50);
+		assert.strictEqual(configurations.length, 1);
+		assert.strictEqual(configurations[0].type, 'command');
+		assert.strictEqual(configurations[0].key, 'vscode.setEditorLayout');
+	});
+
+	test('Exact setting id match', async () => {
+		const configurations = await configurationSearch.search('workbench.editor.customLabels.patterns', 50);
+		assert.strictEqual(configurations.length, 1);
+		assert.strictEqual(configurations[0].type, 'setting');
+		assert.strictEqual(configurations[0].key, 'workbench.editor.customLabels.patterns');
+	});
+
+	test('Keywords: workbench editor custom labels pattern', async () => {
+		const configurations = await configurationSearch.search('workbench editor custom labels pattern', 20);
+		assert.strictEqual(configurations.some(c => c.key === 'workbench.editor.customLabels.patterns'), true);
+	});
+
+	test('Keywords: editor label', async () => {
+		const configurations = await configurationSearch.search('editor label', 20);
+		assert.strictEqual(configurations.some(c => c.key === 'workbench.editor.customLabels.patterns'), true);
+	});
+
+	test('Keywords: label pattern', async () => {
+		const configurations = await configurationSearch.search('label pattern', 20);
+		assert.strictEqual(configurations.some(c => c.key === 'workbench.editor.customLabels.patterns'), true);
+	});
+
+	teardown(() => {
+		configurationSearch.dispose();
 	});
 });
