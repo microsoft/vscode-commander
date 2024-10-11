@@ -9,16 +9,17 @@ resources:
       ref: main
       endpoint: Monaco
 
-# parameters:
-#   - name: publishExtension
-#     displayName: 🚀 Publish Extension
-#     type: boolean
-#     default: false
+parameters:
+  - name: publishExtension
+    displayName: 🚀 Publish Extension
+    type: boolean
+    default: false
 
 extends:
   template: azure-pipelines/extension/pre-release.yml@templates
   parameters:
     ghCreateRelease: false
+    publishExtension: false
 
     buildSteps:
       - script: npm install --frozen-lockfile --check-files
@@ -43,4 +44,3 @@ extends:
         serviceTreeID: '1788a767-5861-45fb-973b-c686b67c5541'
       enabled: true
 
-    # publishExtension: ${{ parameters.publishExtension }}
