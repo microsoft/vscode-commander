@@ -34,9 +34,7 @@ export function activate(context: vscode.ExtensionContext) {
 		updatedSettings.splice(0, updatedSettings.length);
 		ranCommands.splice(0, ranCommands.length);
 
-		const [model] = await vscode.lm.selectChatModels({
-			family: 'gpt-4o',
-		});
+		const model = await getModel('gpt-4o');
 
 		const tools = vscode.lm.tools
 			.filter(t => t.tags.includes('commander'))
@@ -69,10 +67,11 @@ export function activate(context: vscode.ExtensionContext) {
 1. Come up with keywords, phrases and synonyms that you think the user might use to describe the action they want to perform.
 2. Use the ${SEARCH_TOOL_ID} tool to find configurations that match with the keywords you found in step 1.
 3. Look for the most appropriate setting or command that matches the user's intent. Prefer setting over command if available.
-4. Use the ${UPDATE_SETTING_TOOL_ID} tool to update the setting to the value the user requested. If a setting depends on other settings, ensure they are configured properly as well. If you aren’t updating the value of a setting, don’t change it.
-5. Use the ${RUN_COMMAND_TOOL_ID} tool to run the command. 
-6. Never ask the user whether they think you should perform the action or suggest actions, YOU JUST DO IT!!!
-7. Always inform the user about the setting and value you updated or the command you ran, including its keybinding if applicable.
+4. Use the ${UPDATE_SETTING_TOOL_ID} tool to update the setting to the value the user requested.
+5. If you are running command with 'vscode.setEditorLayout' id, use step by step reasoning to come up with the arguments explaining to the user.
+6. Use the ${RUN_COMMAND_TOOL_ID} tool to run a command found using the ${SEARCH_TOOL_ID}. 
+7. Never ask the user whether they think you should perform the action or suggest actions, YOU JUST DO IT!!!
+8. Always inform the user about the setting and the value you updated or the command and the arguments you ran, including its keybinding if applicable.
 `
 			));
 
@@ -187,6 +186,13 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(chatParticipant);
 }
 
+async function getModel(family: string) {
+	const [model] = await vscode.lm.selectChatModels({
+		family
+	});
+	return model;
+}
+
 interface IToolCall {
 	tool: vscode.LanguageModelToolDescription;
 	call: vscode.LanguageModelToolCallPart;
@@ -198,7 +204,9 @@ async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMes
 	const messages = [...initialMessages];
 	const toolCalls: IToolCall[] = [];
 
+	logger.trace('sending request to the model');
 	const modelResponse = await model.sendRequest(messages, { tools });
+	logger.info('model responded.');
 
 	try {
 		for await (const message of modelResponse.stream) {
@@ -225,6 +233,7 @@ async function invokeModelWithTools(initialMessages: vscode.LanguageModelChatMes
 					}
 				}
 
+				logger.info('Invoking tool', tool.id);
 				toolCalls.push({
 					call: message,
 					result: vscode.lm.invokeTool(tool.id, {

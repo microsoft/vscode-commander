@@ -11,7 +11,7 @@ import { followReference, IJSONSchema, resolveReferences } from './jsonSchema';
 type Configuration = { type: string, key: string, description: string };
 type Searchables<T> = { key: string, description: string, id: string, object: T & Configuration };
 export type Setting = Configuration & { type: 'setting', defaultValue: any; valueType: string };
-export type Command = Configuration & { type: 'command', keybinding?: string, argsSchema?: IJSONSchema, hasArguments?: false };
+export type Command = Configuration & { type: 'command', keybinding?: string, argsSchema?: IJSONSchema | string, hasArguments?: false };
 
 const settingsSchemaResource = vscode.Uri.parse('vscode://schemas/settings/default');
 const keybindingsSchemaResource = vscode.Uri.parse('vscode://schemas/keybindings');
@@ -175,7 +175,7 @@ export class Configurations implements vscode.Disposable {
 					description: commandDescription,
 					type: 'command',
 					keybinding: defaultKeybindingsDocumennt.find(keybinding => keybinding.command === commandId)?.key,
-					argsSchema,
+					argsSchema: commandId === 'vscode.setEditorLayout' ? commandDescription : argsSchema,
 					hasArguments: argsSchema === undefined ? false : undefined,
 				}
 			});
