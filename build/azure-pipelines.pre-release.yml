@@ -22,12 +22,11 @@ extends:
     publishExtension: false
 
     buildSteps:
-      - script: npm install --frozen-lockfile --check-files
+      - script: npm ci
         displayName: Install dependencies
-        retryCountOnTaskFailure: 3
 
-      - script: npm package
-        displayName: Compile
+      - script: npm run package
+        displayName: Package
 
       # - script: >
       #     node ./scripts/prepare-prerelease-build.js
