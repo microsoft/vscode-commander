@@ -24,14 +24,14 @@ interface IUserFriendlyKeybinding {
 	when?: string;
 }
 
-export class Configurations {
+export class Configurations implements vscode.Disposable {
 
 	private readonly miniSearch: MiniSearch<Searchables<Setting | Command>>;
 
 	private initPromise: Promise<void> | undefined;
+	private disposables: vscode.Disposable[] = [];
 
 	constructor(
-		context: vscode.ExtensionContext,
 		private readonly logger: vscode.LogOutputChannel,
 	) {
 		this.miniSearch = new MiniSearch<Searchables<Setting | Command>>({
@@ -39,7 +39,7 @@ export class Configurations {
 			storeFields: ['key', 'object'],
 		});
 		this.init();
-		context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(e => {
+		this.disposables.push(vscode.workspace.onDidChangeTextDocument(e => {
 			if (e.document.uri.toString() === settingsSchemaResource.toString()
 				|| e.document.uri.toString() === defaultKeybindingsResource.toString()
 				|| e.document.uri.toString() === keybindingsSchemaResource.toString()) {
@@ -195,6 +195,10 @@ export class Configurations {
 		}
 
 		return results.slice(0, limit).map(result => result.object);
+	}
+
+	dispose() {
+		this.disposables.forEach(disposable => disposable.dispose());
 	}
 }
 
