@@ -33,7 +33,7 @@
     ],
     "languageModelTools": [
       {
-        "id": "searchConfigurations",
+        "name": "searchConfigurations",
         "displayName": "Search Configurations",
         "modelDescription": "Use this tool to search for settings and commands. This will return all those settings and commands that contain the provided keywords. Each result will have a type to know if it is a setting or a command. A setting includes the description, default value, current value and other possible values and a command includes the description and possible arguments to be used to invoke the command.",
         "supportedContentTypes": [
@@ -53,7 +53,7 @@
         ]
       },
       {
-        "id": "updateSettings",
+        "name": "updateSettings",
         "displayName": "Update settings",
         "modelDescription": "Use this tool to update settings. This tool support bulk updates, so you can update multiple settings at once. Provide the settings to update as a key value pair of setting id and new value. The value of the setting must follow the setting schema.",
         "tags": [
@@ -67,7 +67,7 @@
         }
       },
       {
-        "id": "runCommand",
+        "name": "runCommand",
         "displayName": "Run command",
         "modelDescription": "Use this tool to run a command. This tool will run the command with the provided arguments if the command supports them. The arguments must follow the command arguments schema provided by the searchConfigurations.",
         "tags": [
