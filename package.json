@@ -15,6 +15,7 @@
     "lmTools"
   ],
   "main": "./dist/extension.js",
+  "icon": "images/vscode-commander.png",
   "contributes": {
     "commands": [
       {
