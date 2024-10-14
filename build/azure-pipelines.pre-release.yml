@@ -28,8 +28,8 @@ extends:
       - script: npm run lint
         displayName: Linting
 
-      # - script: npm run test
-      #   displayName: Run Tests
+      - script: npm run test
+        displayName: Run Tests
 
       - script: npm run package
         displayName: Package
