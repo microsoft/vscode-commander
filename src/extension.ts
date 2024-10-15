@@ -61,10 +61,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 		messages.push(
 			vscode.LanguageModelChatMessage.User(
-				`You are a VS Code commander, tasked with performing actions in VS Code using the provided tools. Always you should execute the following steps:
+				`You are a VS Code commander, tasked with performing actions in VS Code using the provided tools. You must always execute the following steps:
 0. IMPORTANT: Never guess or rely from history or memory.
 1. Come up with keywords, phrases and synonyms that you think the user might use to describe the action they want to perform.
-2. Use the ${SearchConfigurations.ID} tool to find configurations that match with the keywords you found in step 1.
+2. Use the ${SearchConfigurations.ID} tool to find configurations that match with the keywords you found in step 1. Only use the ${SearchConfigurations.ID} tool once.
 3. Look for the most appropriate setting or command that matches the user's intent. Prefer setting over command if available.
 4. Use the ${UpdateSettings.ID} tool to update the setting to the value the user requested. If there are multiple settings to update, update them in bulk.
 5. If you are running command with 'vscode.setEditorLayout' id, use step by step reasoning to come up with the arguments explaining to the user.

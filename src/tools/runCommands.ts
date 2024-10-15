@@ -21,7 +21,7 @@ export class RunCommands implements vscode.LanguageModelTool<{ key?: string, arg
          return undefined;
       }
 
-      const invocationMessage = `Executing command \`${options.parameters.key}\``;
+      const invocationMessage = `Running \`${options.parameters.key}\``;
       let confirmationMessages: vscode.LanguageModelToolConfirmationMessages | undefined;
 
       if (options.parameters.key === 'workbench.action.resetViewLocations') {
