@@ -20,6 +20,7 @@ extends:
   parameters:
     ghCreateRelease: false
     publishExtension: ${{ parameters.publishExtension }}
+    vscePackageArgs: "--allow-missing-repository"
 
     buildSteps:
       - script: npm ci
