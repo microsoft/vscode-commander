@@ -13,6 +13,7 @@ const UNDO_SETTINGS_UPDATES_COMMAND_ID = 'vscode-commander.undo-settings-updates
 
 const updatedSettings: { key: string, oldValue: any, newValue: any }[] = [];
 const ranCommands: { key: string, arguments: any }[] = [];
+const chatContext: { prompt: string } = { prompt: '' }; // TODO@benibenj remove this when structural output is supported
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -32,6 +33,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 		updatedSettings.splice(0, updatedSettings.length);
 		ranCommands.splice(0, ranCommands.length);
+		chatContext.prompt = request.prompt;
 
 		const model = await getModel('gpt-4o');
 
@@ -86,7 +88,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 	context.subscriptions.push(vscode.lm.registerTool(SearchConfigurations.ID, new SearchConfigurations(configurations, logger)));
 	context.subscriptions.push(vscode.lm.registerTool(UpdateSettings.ID, new UpdateSettings(updatedSettings, configurations, logger)));
-	context.subscriptions.push(vscode.lm.registerTool(RunCommands.ID, new RunCommands(ranCommands, configurations, logger)));
+	context.subscriptions.push(vscode.lm.registerTool(RunCommands.ID, new RunCommands(chatContext, ranCommands, configurations, logger)));
 }
 
 async function getModel(family: string) {
