@@ -11,7 +11,7 @@
 			"request": "launch",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--profile-temp"
+				// "--profile-temp"
 			],
 			"outFiles": [
 				"${workspaceFolder}/dist/**/*.js"
