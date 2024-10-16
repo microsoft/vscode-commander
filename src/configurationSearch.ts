@@ -10,7 +10,7 @@ import { followReference, IJSONSchema, resolveReferences } from './jsonSchema';
 
 type Configuration = { type: string, key: string, description: string };
 type Searchables<T> = { key: string, description: string, id: string, object: T & Configuration };
-export type Setting = Configuration & { type: 'setting', defaultValue: any; valueType: string };
+export type Setting = Configuration & { type: 'setting', defaultValue: any; valueType: string, restricted: boolean };
 export type Command = Configuration & { type: 'command', keybinding?: string, argsSchema?: IJSONSchema | string, hasArguments?: false };
 
 const settingsSchemaResource = vscode.Uri.parse('vscode://schemas/settings/default');
@@ -82,7 +82,8 @@ export class Configurations implements vscode.Disposable {
 
 			// If property has a definition reference, retrieve it
 			if (property.$ref !== undefined) {
-				property = followReference(property.$ref, settings);
+				property = { ...property, ...followReference(property.$ref, settings) };
+				delete property.$ref;
 			}
 
 			if (!property) {
@@ -105,6 +106,7 @@ export class Configurations implements vscode.Disposable {
 					defaultValue: property.default,
 					valueType: (Array.isArray(property.type) ? property.type[0] : property.type) ?? 'string',
 					type: 'setting',
+					restricted: !!(property as any).restricted,
 				}
 			});
 		}
@@ -127,7 +129,7 @@ export class Configurations implements vscode.Disposable {
 			// Resolve all $ref in the command schema
 			resolveReferences(p, keybindingsSchema);
 
-			const commandId = p.if?.properties?.command?.const;
+			const commandId: string | undefined = p.if?.properties?.command?.const;
 			if (commandId === undefined) {
 				continue;
 			}
@@ -156,10 +158,15 @@ export class Configurations implements vscode.Disposable {
 
 		for (let index = 0; index < commandNames.enumDescriptions.length; index++) {
 			const commandDescription = commandNames.enumDescriptions[index];
-			const commandId = commandNames.enum?.[index];
+			const commandId: string | undefined = commandNames.enum?.[index];
 			if (!commandId) {
 				continue;
 			}
+
+			if (commandId.toLowerCase().includes('focus')) {
+				continue; // Focus commands do nothing if the view is not open/visible so don't show them
+			}
+
 			if (!commandDescription) {
 				this.logger.trace(`Skipping command ${commandId}: Does not have a description`);
 				continue;

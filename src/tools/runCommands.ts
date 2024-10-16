@@ -4,6 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
+import { Command, Configurations } from '../configurationSearch';
+
+const confirmationSettings: { [key: string]: vscode.LanguageModelToolConfirmationMessages } = {
+   'workbench.action.resetViewLocations': {
+      title: 'Reset View Locations',
+      message: 'This will reset all views to their default locations. Are you sure you want to do this?',
+   },
+};
 
 export class RunCommands implements vscode.LanguageModelTool<{ key?: string, argumentsArray?: string }> {
 
@@ -11,6 +19,7 @@ export class RunCommands implements vscode.LanguageModelTool<{ key?: string, arg
 
    constructor(
       private readonly ranCommands: { key: string, arguments: any }[],
+      private readonly configurations: Configurations,
       private readonly logger: vscode.LogOutputChannel,
    ) {
    }
@@ -21,19 +30,9 @@ export class RunCommands implements vscode.LanguageModelTool<{ key?: string, arg
          return undefined;
       }
 
-      const invocationMessage = `Running \`${options.parameters.key}\``;
-      let confirmationMessages: vscode.LanguageModelToolConfirmationMessages | undefined;
-
-      if (options.parameters.key === 'workbench.action.resetViewLocations') {
-         confirmationMessages = {
-            title: 'Reset View Locations',
-            message: `This will reset all views to their default locations. Are you sure you want to do this?`,
-         };
-      }
-
       return {
-         invocationMessage,
-         confirmationMessages
+         invocationMessage: `Running \`${options.parameters.key}\``,
+         confirmationMessages: confirmationSettings[options.parameters.key]
       };
    }
 
@@ -41,6 +40,11 @@ export class RunCommands implements vscode.LanguageModelTool<{ key?: string, arg
       // validate parameters
       if (typeof options.parameters.key !== 'string' || !options.parameters.key.length) {
          return { 'text/plain': 'Not able to change because the parameter is missing or invalid' };
+      }
+
+      const commands = await this.configurations.search(options.parameters.key, 1) as Command[];
+      if (commands.length === 0) {
+         return { 'text/plain': `Command ${options.parameters.key} not found` };
       }
 
       let args: any[] = [];

@@ -62,9 +62,13 @@
         ],
         "parametersSchema": {
           "type": "object",
-          "description": "Dictionary of settings to update",
-          "additionalProperties": true,
-          "properties": {}
+          "properties": {
+            "settings": {
+              "type": "object",
+              "description": "Dictionary of settings to update. The key is the setting id and the value is the new value of the setting.",
+              "additionalProperties": true
+            }
+          }
         }
       },
       {

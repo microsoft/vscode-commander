@@ -13,8 +13,7 @@ export class SearchConfigurations implements vscode.LanguageModelTool<{ keywords
    constructor(
       private readonly configurations: Configurations,
       private readonly logger: vscode.LogOutputChannel
-   ) {
-   }
+   ) { }
 
    prepareToolInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<{ keywords?: string }>, token: vscode.CancellationToken): vscode.ProviderResult<vscode.PreparedToolInvocation> {
       return {

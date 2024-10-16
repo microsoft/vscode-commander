@@ -66,11 +66,9 @@ export function activate(context: vscode.ExtensionContext) {
 1. Come up with keywords, phrases and synonyms that you think the user might use to describe the action they want to perform.
 2. Use the ${SearchConfigurations.ID} tool to find configurations that match with the keywords you found in step 1. Only use the ${SearchConfigurations.ID} tool once.
 3. Look for the most appropriate setting or command that matches the user's intent. Prefer setting over command if available.
-4. Use the ${UpdateSettings.ID} tool to update the setting to the value the user requested. If there are multiple settings to update, update them in bulk.
-5. If you are running command with 'vscode.setEditorLayout' id, use step by step reasoning to come up with the arguments explaining to the user.
-6. Use the ${RunCommands.ID} tool to run a command found using the ${SearchConfigurations.ID}. 
-7. Never ask the user whether they think you should perform the action or suggest actions, YOU JUST DO IT!!!
-8. Always inform the user about the setting and the value you updated or the command and the arguments you ran, including its keybinding if applicable.
+4. Use the ${UpdateSettings.ID} tool to update the setting to the value the user requested. If there are multiple settings to update, update them in bulk. Always tell the user what the new value is.
+5. Use the ${RunCommands.ID} tool to run a command found using the ${SearchConfigurations.ID}. Always tell the user what the keybinding is for the command if applicable.
+6. Never ask the user whether they think you should perform the action or suggest actions, YOU JUST DO IT!!!
 `
 			));
 
@@ -87,8 +85,8 @@ export function activate(context: vscode.ExtensionContext) {
 	}));
 
 	context.subscriptions.push(vscode.lm.registerTool(SearchConfigurations.ID, new SearchConfigurations(configurations, logger)));
-	context.subscriptions.push(vscode.lm.registerTool(UpdateSettings.ID, new UpdateSettings(updatedSettings, logger)));
-	context.subscriptions.push(vscode.lm.registerTool(RunCommands.ID, new RunCommands(ranCommands, logger)));
+	context.subscriptions.push(vscode.lm.registerTool(UpdateSettings.ID, new UpdateSettings(updatedSettings, configurations, logger)));
+	context.subscriptions.push(vscode.lm.registerTool(RunCommands.ID, new RunCommands(ranCommands, configurations, logger)));
 }
 
 async function getModel(family: string) {
