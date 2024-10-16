@@ -1,8 +1,8 @@
 {
   "name": "vscode-commander",
   "publisher": "ms-vscode",
-  "displayName": "vscode-commander",
-  "description": "VS Code Commander",
+  "displayName": "VS Code Commander",
+  "description": "Enables users to configure VS Code using chat. The extension allows to search for settings and commands and reason about them. The settings values can easily be updated and commands can be run.",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.94.0"
