@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { BasePromptElementProps, PromptElement, contentType as promptTsxContentType, renderElementJSON } from '@vscode/prompt-tsx';
-import { prune } from './utils';
+import { pruneToolResult } from './utils';
 
 interface RunCommandResultSuccessProps extends BasePromptElementProps {
    readonly commandId: string;
@@ -68,7 +68,7 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
    }
 
    async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken) {
-      return prune(options.requestedContentTypes, await this._invoke(options, token));
+      return pruneToolResult(options.requestedContentTypes, await this._invoke(options, token));
    }
 
    private async _invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken) {

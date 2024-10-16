@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { Command, Configurations, Setting } from '../configurationSearch';
 import { BasePromptElementProps, PromptElement, contentType as promptTsxContentType, renderElementJSON } from '@vscode/prompt-tsx';
-import { prune } from './utils';
+import { pruneToolResult } from './utils';
 
 type SearchConfigurationsResults = ((Setting & { currentValue: unknown }) | Command)[];
 
@@ -52,7 +52,7 @@ export class SearchConfigurations implements vscode.LanguageModelTool<{ keywords
 	}
 
 	async invoke(options: vscode.LanguageModelToolInvocationOptions<{ keywords?: string }>, token: vscode.CancellationToken) {
-		return prune(options.requestedContentTypes, await this._invoke(options, token));
+		return pruneToolResult(options.requestedContentTypes, await this._invoke(options, token));
 	}
 
 	private async _invoke(options: vscode.LanguageModelToolInvocationOptions<{ keywords?: string }>, token: vscode.CancellationToken) {

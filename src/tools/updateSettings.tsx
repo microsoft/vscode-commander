@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { BasePromptElementProps, PromptElement, contentType as promptTsxContentType, renderElementJSON, TextChunk } from '@vscode/prompt-tsx';
-import { prune } from './utils';
+import { pruneToolResult } from './utils';
 
 type Update = { key: string, oldValue: unknown, newValue: unknown };
 
@@ -76,7 +76,7 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
    }
 
    async invoke(options: vscode.LanguageModelToolInvocationOptions<Record<string, any>>, token: vscode.CancellationToken) {
-      return prune(options.requestedContentTypes, await this._invoke(options, token));
+      return pruneToolResult(options.requestedContentTypes, await this._invoke(options, token));
    }
 
    private async _invoke(options: vscode.LanguageModelToolInvocationOptions<Record<string, any>>, token: vscode.CancellationToken) {
