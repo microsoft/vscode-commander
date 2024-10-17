@@ -164,11 +164,9 @@ class CommanderPrompt extends PromptElement<CommanderPromptProps, void> {
 				1. Come up with keywords, phrases and synonyms that you think the user might use to describe the action they want to perform.<br />
 				2. Use the {SearchConfigurations.ID} tool to find configurations that match with the keywords you found in step 1. Only use the {SearchConfigurations.ID} tool once.<br />
 				3. Look for the most appropriate setting or command that matches the user's intent. Prefer setting over command if available.<br />
-				4. Use the {UpdateSettings.ID} tool to update the setting to the value the user requested. If there are multiple settings to update, update them in bulk.<br />
-				5. If you are running command with 'vscode.setEditorLayout' id, use step by step reasoning to come up with the arguments explaining to the user.<br />
-				6. Use the {RunCommand.ID} tool to run a command found using the {SearchConfigurations.ID}.<br />
-				7. Never ask the user whether they think you should perform the action or suggest actions, YOU JUST DO IT!!!<br />
-				8. Always inform the user about the setting and the value you updated or the command and the arguments you ran, including its keybinding if applicable.
+				4. Use the {UpdateSettings.ID} tool to update the setting to the value the user requested. If there are multiple settings to update, update them in bulk. Always tell the user what the new value is.<br />
+				5. Use the {RunCommand.ID} tool to run a command found using the {SearchConfigurations.ID}. Always tell the user what the keybinding is for the command if applicable.<br />
+				6. Never ask the user whether they think you should perform the action or suggest actions, YOU JUST DO IT!!!
 			</UserMessage>
 			<History context={this.props.context} priority={10} />
 			<UserMessage>{this.props.request.prompt}</UserMessage>
@@ -199,11 +197,13 @@ export class ToolResultMetadata extends PromptMetadata {
 export default function (
 	updatedSettings: { key: string, oldValue: any, newValue: any }[],
 	ranCommands: { key: string, arguments: any }[],
+	chatContext: { prompt: string },
 	logger: vscode.LogOutputChannel
 ) {
 	return async (request: vscode.ChatRequest, context: vscode.ChatContext, response: vscode.ChatResponseStream, token: vscode.CancellationToken) => {
 		updatedSettings.splice(0, updatedSettings.length);
 		ranCommands.splice(0, ranCommands.length);
+		chatContext.prompt = request.prompt;
 
 		const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4o' });
 

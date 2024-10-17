@@ -15,6 +15,7 @@ const UNDO_SETTINGS_UPDATES_COMMAND_ID = 'vscode-commander.undo-settings-updates
 export function activate(context: vscode.ExtensionContext) {
 	const updatedSettings: { key: string, oldValue: any, newValue: any }[] = [];
 	const ranCommands: { key: string, arguments: any }[] = [];
+	const chatContext: { prompt: string } = { prompt: '' }; // TODO@benibenj remove this when structural output is supported
 
 	const logger = vscode.window.createOutputChannel('VS Code Commander', { log: true });
 	const configurations = new Configurations(logger);
@@ -27,10 +28,10 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}));
 
-	context.subscriptions.push(vscode.chat.createChatParticipant('vscode-commader', createChatParticipant(updatedSettings, ranCommands, logger)));
+	context.subscriptions.push(vscode.chat.createChatParticipant('vscode-commader', createChatParticipant(updatedSettings, ranCommands, chatContext, logger)));
 	context.subscriptions.push(vscode.lm.registerTool(SearchConfigurations.ID, new SearchConfigurations(configurations, logger)));
-	context.subscriptions.push(vscode.lm.registerTool(UpdateSettings.ID, new UpdateSettings(updatedSettings, logger)));
-	context.subscriptions.push(vscode.lm.registerTool(RunCommand.ID, new RunCommand(ranCommands, logger)));
+	context.subscriptions.push(vscode.lm.registerTool(UpdateSettings.ID, new UpdateSettings(updatedSettings, configurations, logger)));
+	context.subscriptions.push(vscode.lm.registerTool(RunCommand.ID, new RunCommand(chatContext, ranCommands, configurations, logger)));
 }
 
 export function deactivate() { }

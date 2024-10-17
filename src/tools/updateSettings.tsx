@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import { BasePromptElementProps, PromptElement, contentType as promptTsxContentType, renderElementJSON, TextChunk } from '@vscode/prompt-tsx';
 import { pruneToolResult } from './utils';
+import { Configurations } from '../configurationSearch';
 
 type Update = { key: string, oldValue: unknown, newValue: unknown };
 
@@ -45,32 +46,51 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
 
    constructor(
       private readonly updatedSettings: { key: string, oldValue: any, newValue: any }[],
+      private readonly configurations: Configurations,
       private readonly logger: vscode.LogOutputChannel,
    ) {
    }
 
-   private validateSettings(settings: Record<string, any>): [string, any][] {
-      const result: [string, any][] = [];
+   private validateSettings(settings: Record<string, any>): { key: string, value: any }[] {
+      const result: { key: string, value: any }[] = [];
       for (const [key, value] of Object.entries(settings)) {
-         result.push([key, value]);
+         result.push({ key, value });
       }
       return result;
    }
 
-   prepareToolInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<Record<string, any>>, token: vscode.CancellationToken): vscode.ProviderResult<vscode.PreparedToolInvocation> {
-      const settingsToUpdate = this.validateSettings(options.parameters);
+   async prepareToolInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<{ settings?: Record<string, any> }>, token: vscode.CancellationToken): Promise<vscode.PreparedToolInvocation | undefined> {
+      const settingsToUpdate = this.validateSettings(options.parameters.settings ?? {});
 
       if (settingsToUpdate.length === 0) {
          return undefined;
       }
 
+      // Check if a settings is restricted. If so, create the confirmation message
+      let message = new vscode.MarkdownString('', true);
+      message.isTrusted = { enabledCommands: ['workbench.action.openSettings'] };
+      for (const { key, value } of settingsToUpdate) {
+         const setting = (await this.configurations.search(key, 1))[0];
+         if (!setting || setting.type !== 'setting' || !setting.restricted) {
+            continue;
+         }
+         message.value += `Updating \`${key}\` to \`${value}\`.\n\n`;
+         message.value += `- **Description:** ${setting.description}\n\n`;
+      }
+
+      const confirmationMessages = message.value !== '' ? { title: 'Confirmation required', message } : undefined;
+
+      // One setting to update
       if (settingsToUpdate.length === 1) {
          return {
-            invocationMessage: `Updating setting \`${settingsToUpdate[0][0]}\``,
+            confirmationMessages,
+            invocationMessage: `Updating \`${settingsToUpdate[0].key}\``,
          };
       }
 
+      // Multiple settings to update
       return {
+         confirmationMessages,
          invocationMessage: `Updating ${settingsToUpdate.length} settings`,
       };
    }
@@ -80,7 +100,7 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
    }
 
    private async _invoke(options: vscode.LanguageModelToolInvocationOptions<Record<string, any>>, token: vscode.CancellationToken) {
-      const settingsToUpdate = this.validateSettings(options.parameters);
+      const settingsToUpdate = this.validateSettings(options.parameters ?? {});
 
       if (settingsToUpdate.length === 0) {
          return {
@@ -96,10 +116,10 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
          };
       }
 
-      const updates: Update[] = [];
+      const updates: { key: string, oldValue: any, newValue: any }[] = [];
       const unchanged: string[] = [];
 
-      for (const [key, value] of settingsToUpdate) {
+      for (const { key, value } of settingsToUpdate) {
          const oldValue = vscode.workspace.getConfiguration().get(key);
          if (oldValue !== value) {
             try {
@@ -123,5 +143,4 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
          'text/plain': `Updated ${updates.length} settings: ${updates.map(s => `${s.key} from ${s.oldValue} to ${s.newValue}`).join(', ')}. ${unchanged.length ? `No changes to ${unchanged.length} settings: ${unchanged.join(', ')}.` : ''}`
       };
    }
-
 }
