@@ -179,12 +179,6 @@ class CommanderPrompt extends PromptElement<CommanderPromptProps, void> {
 	}
 }
 
-// interface IToolCall {
-// 	tool: vscode.LanguageModelToolDescription;
-// 	call: vscode.LanguageModelToolCallPart;
-// 	result: Thenable<vscode.LanguageModelToolResult>;
-// }
-
 export class ToolResultMetadata extends PromptMetadata {
 	constructor(
 		public toolCallId: string,
@@ -246,16 +240,6 @@ export default function (
 					}
 
 					toolCalls.push(part);
-					// logger.info('Invoking tool', tool.name);
-					// toolCalls.push({
-					// 	call: message,
-					// 	result: vscode.lm.invokeTool(tool.name, {
-					// 		toolInvocationToken: request.toolInvocationToken,
-					// 		requestedContentTypes: ['text/plain', 'application/json'],
-					// 		parameters: message.parameters
-					// 	}, token),
-					// 	tool
-					// });
 				}
 			}
 
@@ -281,32 +265,5 @@ export default function (
 				}
 			}
 		};
-
-
-		// async function invokeModelWithTools(model: vscode.LanguageModelChat, tools: vscode.LanguageModelChatTool[], request: vscode.ChatRequest, response: vscode.ChatResponseStream, logger: vscode.LogOutputChannel, token: vscode.CancellationToken) {
-
-		// 	if (toolCalls.length) {
-		// 		for (const toolCall of toolCalls) {
-		// 			const assistantMsg = vscode.LanguageModelChatMessage.Assistant('');
-		// 			assistantMsg.content2 = [new vscode.LanguageModelToolCallPart(toolCall.tool.name, toolCall.call.toolCallId, toolCall.call.parameters)];
-		// 			messages.push(assistantMsg);
-
-		// 			// NOTE that the result of calling a function is a special content type of a USER-message
-		// 			const message = vscode.LanguageModelChatMessage.User('');
-		// 			const toolResult = await toolCall.result;
-		// 			message.content2 = [new vscode.LanguageModelToolResultPart(toolCall.call.toolCallId, toolResult['application/json'] ?? toolResult['text/plain'])];
-		// 			messages.push(message);
-		// 		}
-
-		// 		// IMPORTANT The prompt must end with a USER message (with no tool call)
-		// 		messages.push(vscode.LanguageModelChatMessage.User(`Above is the result of calling the functions ${toolCalls.map(call => call.tool.name).join(', ')}. The user cannot see this result, so you should explain it to the user if referencing it in your answer.`));
-
-		// 		return invokeModelWithTools(model, tools, request, response, logger, token);
-		// 	}
-		// }
-
-		// await invokeModelWithTools(model, tools, request, response, logger, token);
-
 	};
 }
-
