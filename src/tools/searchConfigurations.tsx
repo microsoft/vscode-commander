@@ -45,7 +45,7 @@ export class SearchConfigurations implements vscode.LanguageModelTool<{ keywords
 	) {
 	}
 
-	prepareToolInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<{ keywords?: string }>, token: vscode.CancellationToken): vscode.ProviderResult<vscode.PreparedToolInvocation> {
+	prepareToolInvocation(): vscode.ProviderResult<vscode.PreparedToolInvocation> {
 		return {
 			invocationMessage: `Searching for actions`,
 		};
