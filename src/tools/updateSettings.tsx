@@ -59,8 +59,8 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
       return result;
    }
 
-   async prepareToolInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<{ settings?: Record<string, any> }>, token: vscode.CancellationToken): Promise<vscode.PreparedToolInvocation | undefined> {
-      const settingsToUpdate = this.validateSettings(options.parameters.settings ?? {});
+   async prepareToolInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<Record<string, any>>, token: vscode.CancellationToken): Promise<vscode.PreparedToolInvocation | undefined> {
+      const settingsToUpdate = this.validateSettings(options.parameters ?? {});
 
       if (settingsToUpdate.length === 0) {
          return undefined;
@@ -68,12 +68,12 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
 
       // Check if a settings is restricted. If so, create the confirmation message
       let message = new vscode.MarkdownString('', true);
-      message.isTrusted = { enabledCommands: ['workbench.action.openSettings'] };
       for (const { key, value } of settingsToUpdate) {
          const setting = (await this.configurations.search(key, 1))[0];
          if (!setting || setting.type !== 'setting' || !setting.restricted) {
             continue;
          }
+
          message.value += `Updating \`${key}\` to \`${value}\`.\n\n`;
          message.value += `- **Description:** ${setting.description}\n\n`;
       }
@@ -103,17 +103,11 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
       const settingsToUpdate = this.validateSettings(options.parameters ?? {});
 
       if (settingsToUpdate.length === 0) {
-         return {
-            [promptTsxContentType]: await renderElementJSON(UpdateSettingsResult, { error: 'No settings to update' }, options.tokenOptions),
-            'text/plain': 'No settings to update'
-         };
+         return await this.createToolErrorResult('No settings to update', options, token);
       }
 
       if (token.isCancellationRequested) {
-         return {
-            [promptTsxContentType]: await renderElementJSON(UpdateSettingsResult, { error: 'Cancelled' }, options.tokenOptions),
-            'text/plain': 'Cancelled'
-         };
+         return await this.createToolErrorResult(`Cancelled`, options, token);
       }
 
       const updates: { key: string, oldValue: any, newValue: any }[] = [];
@@ -121,26 +115,41 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
 
       for (const { key, value } of settingsToUpdate) {
          const oldValue = vscode.workspace.getConfiguration().get(key);
-         if (oldValue !== value) {
-            try {
-               this.logger.info('Setting', key, 'to', value);
-               await vscode.workspace.getConfiguration().update(key, value, vscode.ConfigurationTarget.Global);
-               updates.push({ key, oldValue, newValue: value });
-               this.updatedSettings.push({ key, oldValue, newValue: value });
-            } catch (e: any) {
-               return {
-                  [promptTsxContentType]: await renderElementJSON(UpdateSettingsResult, { error: `Wasn't able to set ${key} to ${value} because of ${e.message}` }, options.tokenOptions),
-                  'text/plain': `Wasn't able to set ${key} to ${value} because of ${e.message}`
-               };
-            }
-         } else {
+         if (oldValue === value) {
             unchanged.push(key);
+            continue;
+         }
+
+         updates.push({ key, oldValue, newValue: value });
+         this.updatedSettings.push({ key, oldValue, newValue: value });
+
+         try {
+            this.logger.info('Setting', key, 'to', value);
+            await vscode.workspace.getConfiguration().update(key, value, vscode.ConfigurationTarget.Global);
+         } catch (e: any) {
+            return await this.createToolErrorResult(`Wasn't able to set ${key} to ${value} because of ${e.message}`, options, token);
          }
       }
 
+      return await this.createToolResult({ updates, unchanged }, options, token);
+   }
+
+   private async createToolResult(resultProps: UpdateSettingsResultSuccessProps, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
+      let message = `Updated ${resultProps.updates.length} settings: ${resultProps.updates.map(s => `${s.key} from ${s.oldValue} to ${s.newValue}`).join(', ')}. `;
+      if (resultProps.unchanged.length) {
+         message += `No changes to ${resultProps.unchanged.length} settings: ${resultProps.unchanged.join(', ')}.`;
+      }
+
       return {
-         [promptTsxContentType]: await renderElementJSON(UpdateSettingsResult, { updates, unchanged }, options.tokenOptions),
-         'text/plain': `Updated ${updates.length} settings: ${updates.map(s => `${s.key} from ${s.oldValue} to ${s.newValue}`).join(', ')}. ${unchanged.length ? `No changes to ${unchanged.length} settings: ${unchanged.join(', ')}.` : ''}`
+         [promptTsxContentType]: await renderElementJSON(UpdateSettingsResult, resultProps, options.tokenOptions, token),
+         'text/plain': message
+      };
+   }
+
+   private async createToolErrorResult(errorMessage: string, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
+      return {
+         [promptTsxContentType]: await renderElementJSON(UpdateSettingsResult, { error: errorMessage }, options.tokenOptions, token),
+         'text/plain': errorMessage
       };
    }
 }

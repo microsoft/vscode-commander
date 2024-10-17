@@ -214,7 +214,7 @@ export default function (
 		const toolCallResults: Record<string, vscode.LanguageModelToolResult> = {};
 
 		while (true) {
-			const { messages, metadatas } = await renderPrompt(CommanderPrompt, { request, context, toolCallRounds, toolCallResults }, { modelMaxPromptTokens: model.maxInputTokens }, model);
+			const { messages, metadatas } = await renderPrompt(CommanderPrompt, { request, context, toolCallRounds, toolCallResults }, { modelMaxPromptTokens: model.maxInputTokens }, model, undefined, token);
 			const toolResultMetadata = metadatas.getAll(ToolResultMetadata);
 
 			if (toolResultMetadata?.length) {
@@ -222,7 +222,7 @@ export default function (
 			}
 
 			logger.trace('sending request to the model');
-			const modelResponse = await model.sendRequest(messages, { tools });
+			const modelResponse = await model.sendRequest(messages, { tools }, token);
 			logger.info('model responded.');
 
 			const toolCalls: vscode.LanguageModelToolCallPart[] = [];

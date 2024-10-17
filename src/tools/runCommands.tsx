@@ -69,38 +69,28 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
       };
    }
 
-   async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken) {
+   async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
       return pruneToolResult(options.requestedContentTypes, await this._invoke(options, token));
    }
 
-   private async _invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken) {      // validate parameters
+   private async _invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
+      // validate parameters
       if (typeof options.parameters.key !== 'string' || !options.parameters.key.length) {
-         return {
-            [promptTsxContentType]: await renderElementJSON(RunCommandResult, { error: 'Not able to change because the parameter is missing or invalid' }, options.tokenOptions),
-            'text/plain': 'Not able to change because the parameter is missing or invalid'
-         };
+         return await this.createToolErrorResult('Not able to change because the parameter is missing or invalid', options, token);
       }
 
       // Make sure the command exists
       const commands = await this.configurations.search(options.parameters.key, 1) as Command[];
       if (commands.length === 0) {
-         return {
-            [promptTsxContentType]: await renderElementJSON(RunCommandResult, { error: `Command ${options.parameters.key} not found` }, options.tokenOptions),
-            'text/plain': `Command ${options.parameters.key} not found`
-         };
+         return await this.createToolErrorResult(`Command ${options.parameters.key} not found`, options, token);
       }
-
       const [command] = commands;
 
       // Parse arguments
       const parsedArgs = await this.parseArguments(options.parameters.argumentsArray, command, token);
       if (parsedArgs.errorMessage) {
-         return {
-            [promptTsxContentType]: await renderElementJSON(RunCommandResult, { error: 'Cancelled' }, options.tokenOptions),
-            'text/plain': 'Cancelled'
-         };
+         return await this.createToolErrorResult(parsedArgs.errorMessage, options, token);
       }
-
       const args = parsedArgs.args ?? [];
 
       this.logger.info(`Running ${command.key}` + (args.length ? ` with args ${JSON.stringify(args)}` : ''));
@@ -116,17 +106,28 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
          result = await vscode.commands.executeCommand(command.key, ...args);
          this.ranCommands.push({ key: command.key, arguments: args });
       } catch (e: any) {
-         return {
-            [promptTsxContentType]: await renderElementJSON(RunCommandResult, { error: `Wasn't able to run ${command.key} because of ${e.message}` }, options.tokenOptions),
-            'text/plain': `Wasn't able to run ${command.key} because of ${e.message}`
-         };
+         return await this.createToolErrorResult(`Wasn't able to run ${command.key} because of ${e.message}`, options, token);
+      }
+
+      return await this.createToolResult({ commandId: options.parameters.key, result }, options, token);
+   }
+
+   private async createToolResult(resultProps: RunCommandResultSuccessProps, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
+      let message = `Command ${resultProps.commandId} has been executed`;
+      if (resultProps.result) {
+         message += `The result of executing the command ${resultProps.commandId} is ${JSON.stringify(resultProps.result)}`;
       }
 
       return {
-         [promptTsxContentType]: await renderElementJSON(RunCommandResult, { commandId: options.parameters.key, result }, options.tokenOptions),
-         'text/plain': result === undefined ?
-            `Command ${options.parameters.key} has been executed`
-            : `The result of executing the command ${options.parameters.key} is ${JSON.stringify(result)}`
+         [promptTsxContentType]: await renderElementJSON(RunCommandResult, resultProps, options.tokenOptions, token),
+         'text/plain': message
+      };
+   }
+
+   private async createToolErrorResult(errorMessage: string, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
+      return {
+         [promptTsxContentType]: await renderElementJSON(RunCommandResult, { error: errorMessage }, options.tokenOptions, token),
+         'text/plain': errorMessage
       };
    }
 
