@@ -56,29 +56,21 @@ export class SearchConfigurations implements vscode.LanguageModelTool<{ keywords
 	}
 
 	private async _invoke(options: vscode.LanguageModelToolInvocationOptions<{ keywords?: string }>, token: vscode.CancellationToken) {
-		if (!options.parameters.keywords) {
-			return {
-				[promptTsxContentType]: await renderElementJSON(SearchConfigurationsResult, { error: 'Unable to call searchConfigurations without keywords' }, options.tokenOptions),
-				'text/plain': 'Unable to call searchConfigurations without keywords'
-			};
+		const keywords = options.parameters.keywords;
+		if (!keywords) {
+			return await this.createToolErrorResult('Unable to call searchConfigurations without keywords', options, token);
 		}
 
-		this.logger.info('Keywords:', options.parameters.keywords);
-		const searchResults = await this.configurations.search(options.parameters.keywords, 50);
+		this.logger.info('Keywords:', keywords);
+		const searchResults = await this.configurations.search(keywords, 50);
 		this.logger.info('Configurations:', searchResults.map(c => ({ id: c.key, type: c.type })));
 
 		if (token.isCancellationRequested) {
-			return {
-				[promptTsxContentType]: await renderElementJSON(SearchConfigurationsResult, { error: 'Cancelled' }, options.tokenOptions),
-				'text/plain': 'Cancelled'
-			};
+			return await this.createToolErrorResult('Cancelled', options, token);
 		}
 
 		if (searchResults.length === 0) {
-			return {
-				[promptTsxContentType]: await renderElementJSON(SearchConfigurationsResult, { error: 'No configuration found' }, options.tokenOptions),
-				'text/plain': 'No configuration found'
-			};
+			return await this.createToolErrorResult('No configuration found', options, token);
 		}
 
 		const result: SearchConfigurationsResults = searchResults.map(c => {
@@ -90,9 +82,20 @@ export class SearchConfigurations implements vscode.LanguageModelTool<{ keywords
 
 		this.logger.trace('Sending Configurations:', JSON.stringify(result));
 
+		return await this.createToolResult({ result }, options, token);
+	}
+
+	private async createToolResult(resultProps: SearchConfigurationsResultSuccessProps, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
 		return {
-			[promptTsxContentType]: await renderElementJSON(SearchConfigurationsResult, { result }, options.tokenOptions),
-			'text/plain': JSON.stringify(result)
+			[promptTsxContentType]: await renderElementJSON(SearchConfigurationsResult, resultProps, options.tokenOptions, token),
+			'text/plain': JSON.stringify(resultProps.result)
+		};
+	}
+
+	private async createToolErrorResult(errorMessage: string, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
+		return {
+			[promptTsxContentType]: await renderElementJSON(SearchConfigurationsResult, { error: errorMessage }, options.tokenOptions, token),
+			'text/plain': errorMessage
 		};
 	}
 }
