@@ -59,13 +59,14 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
 
    prepareToolInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken): vscode.ProviderResult<vscode.PreparedToolInvocation> {
       // validate parameters
-      if (typeof options.parameters.key !== 'string' || !options.parameters.key.length) {
+      const commandId = options.parameters.key;
+      if (typeof commandId !== 'string' || !commandId.length) {
          return undefined;
       }
 
       return {
          invocationMessage: `Running \`${options.parameters.key}\``,
-         confirmationMessages: confirmationSettings[options.parameters.key]
+         confirmationMessages: confirmationSettings[commandId]
       };
    }
 
@@ -74,13 +75,14 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
    }
 
    private async _invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
+      const commandId = options.parameters.key;
       // validate parameters
-      if (typeof options.parameters.key !== 'string' || !options.parameters.key.length) {
+      if (typeof commandId !== 'string' || !commandId.length) {
          return await this.createToolErrorResult('Not able to change because the parameter is missing or invalid', options, token);
       }
 
       // Make sure the command exists
-      const commands = await this.configurations.search(options.parameters.key, 1) as Command[];
+      const commands = await this.configurations.search(commandId, 1) as Command[];
       if (commands.length === 0) {
          return await this.createToolErrorResult(`Command ${options.parameters.key} not found`, options, token);
       }
@@ -109,7 +111,7 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
          return await this.createToolErrorResult(`Wasn't able to run ${command.key} because of ${e.message}`, options, token);
       }
 
-      return await this.createToolResult({ commandId: options.parameters.key, result }, options, token);
+      return await this.createToolResult({ commandId: command.key, result }, options, token);
    }
 
    private async createToolResult(resultProps: RunCommandResultSuccessProps, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
