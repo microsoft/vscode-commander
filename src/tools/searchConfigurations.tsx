@@ -56,12 +56,13 @@ export class SearchConfigurations implements vscode.LanguageModelTool<{ keywords
 	}
 
 	private async _invoke(options: vscode.LanguageModelToolInvocationOptions<{ keywords?: string }>, token: vscode.CancellationToken) {
-		if (!options.parameters.keywords) {
+		const keywords = options.parameters.keywords;
+		if (!keywords) {
 			return await this.createToolErrorResult('Unable to call searchConfigurations without keywords', options, token);
 		}
 
-		this.logger.info('Keywords:', options.parameters.keywords);
-		const searchResults = await this.configurations.search(options.parameters.keywords, 50);
+		this.logger.info('Keywords:', keywords);
+		const searchResults = await this.configurations.search(keywords, 50);
 		this.logger.info('Configurations:', searchResults.map(c => ({ id: c.key, type: c.type })));
 
 		if (token.isCancellationRequested) {
