@@ -28,7 +28,7 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}));
 
-	context.subscriptions.push(vscode.chat.createChatParticipant('vscode-commader', createChatParticipant(updatedSettings, ranCommands, chatContext, logger)));
+	context.subscriptions.push(vscode.chat.createChatParticipant('vscode-commader', createChatParticipant(updatedSettings, ranCommands, chatContext, configurations, logger)));
 	context.subscriptions.push(vscode.lm.registerTool(SearchConfigurations.ID, new SearchConfigurations(configurations, logger)));
 	context.subscriptions.push(vscode.lm.registerTool(UpdateSettings.ID, new UpdateSettings(updatedSettings, configurations, logger)));
 	context.subscriptions.push(vscode.lm.registerTool(RunCommand.ID, new RunCommand(chatContext, ranCommands, configurations, logger)));

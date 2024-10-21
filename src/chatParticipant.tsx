@@ -21,6 +21,7 @@ import {
 	ToolMessage,
 	renderPrompt
 } from '@vscode/prompt-tsx';
+import { Configurations } from './configurationSearch';
 import { getTsxDataFromToolsResult } from './tools/utils';
 
 export interface TsxToolUserMetadata {
@@ -187,6 +188,7 @@ export default function (
 	updatedSettings: { key: string, oldValue: any, newValue: any }[],
 	ranCommands: { key: string, arguments: any }[],
 	chatContext: { prompt: string },
+	configurations: Configurations,
 	logger: vscode.LogOutputChannel
 ) {
 	return async (request: vscode.ChatRequest, context: vscode.ChatContext, response: vscode.ChatResponseStream, token: vscode.CancellationToken) => {
@@ -220,29 +222,13 @@ export default function (
 			const modelResponse = await model.sendRequest(messages, { tools }, token);
 			logger.info('model responded.');
 
-			const toolCalls: vscode.LanguageModelToolCallPart[] = [];
-			let responseString = '';
-
-			for await (const part of modelResponse.stream) {
-				if (part instanceof vscode.LanguageModelTextPart) {
-					response.markdown(part.value);
-					responseString += part.value;
-				} else if (part instanceof vscode.LanguageModelToolCallPart) {
-					const tool = vscode.lm.tools.find(t => t.name === part.name);
-
-					if (!tool) {
-						continue;
-					}
-
-					toolCalls.push(part);
-				}
-			}
+			const { textResponse, toolCalls } = await processResponseStream(modelResponse, response, configurations);
 
 			if (toolCalls.length === 0) {
 				break;
 			}
 
-			toolCallRounds.push({ response: responseString, toolCalls });
+			toolCallRounds.push({ response: textResponse, toolCalls });
 		}
 
 		if (updatedSettings.length && !ranCommands.length) {
@@ -261,4 +247,83 @@ export default function (
 			}
 		};
 	};
+}
+
+const backtickPattern = /`([^\s`]+)`/g;
+async function processResponseStream(modelResponse: vscode.LanguageModelChatResponse, response: vscode.ChatResponseStream, configurations: Configurations): Promise<{ textResponse: string, toolCalls: vscode.LanguageModelToolCallPart[] }> {
+	const toolCalls: vscode.LanguageModelToolCallPart[] = [];
+	let textResponse = '';
+	let buffer = "";
+
+	for await (const part of modelResponse.stream) {
+		// Process the text parts. Search for setting and command ids surrounded by backticks
+		// and replace them with links to the settings or keybindings
+		if (part instanceof vscode.LanguageModelTextPart) {
+			buffer += part.value;
+
+			const markdownString = new vscode.MarkdownString(undefined, true);
+			markdownString.isTrusted = { enabledCommands: ['workbench.action.openSettings', 'workbench.action.openGlobalKeybindings'] };
+
+			let lastBacktickIndex = buffer.lastIndexOf('`');
+			const match = backtickPattern.exec(buffer);
+
+			// Output the rendering of the configuration id if pattern matches
+			if (match !== null) {
+				const configurationIdWithBackticks = match[0];
+				const configurationId = match[1];
+				textResponse += buffer; // Do not annotate the ids in the response string
+
+				const renderedConfigurationId = await renderConfigurationId(configurationId, configurations);
+				buffer = buffer.replace(configurationIdWithBackticks, renderedConfigurationId);
+				markdownString.appendMarkdown(buffer);
+
+				buffer = "";
+				backtickPattern.lastIndex = 0;
+			}
+			// Output everything if no backtick found
+			else if (lastBacktickIndex === -1 || buffer.length > 80 /*If buffer is to large, flush it. Commands/Settings are shorter*/) {
+				textResponse += buffer;
+				markdownString.appendMarkdown(buffer);
+				buffer = "";
+			}
+			// Output everything before the last '`' which might be part of an incomplete match
+			else {
+				const textBeforeTick = buffer.substring(0, lastBacktickIndex);
+				textResponse += textBeforeTick;
+				markdownString.appendMarkdown(textBeforeTick);
+				buffer = buffer.substring(lastBacktickIndex); // Keep the potential match in the buffer
+			}
+
+			response.markdown(markdownString);
+
+		} else if (part instanceof vscode.LanguageModelToolCallPart) {
+			const tool = vscode.lm.tools.find(t => t.name === part.name);
+
+			if (!tool) {
+				continue;
+			}
+
+			toolCalls.push(part);
+		}
+	}
+
+	return { textResponse, toolCalls };
+}
+
+async function renderConfigurationId(configurationId: string, configurations: Configurations): Promise<string> {
+	const configs = await configurations.search(configurationId, 2); // TODO: Add configuration lookup without using search
+	if (configs.length !== 1) {
+		return `\`${configurationId}\``;
+	}
+
+	const [config] = configs;
+	if (config.type === 'setting') {
+		return `[\`${config.key}\`](command:workbench.action.openSettings?%5B%22${config.key}%22%5D "Open Setting")`;
+	}
+
+	if (config.type === 'command') {
+		return `[\`${config.key}\`](command:workbench.action.openGlobalKeybindings?%5B%22${config.key}%22%5D "Open Keyboard Shortcuts")`;
+	}
+
+	return `\`${configurationId}\``;
 }
