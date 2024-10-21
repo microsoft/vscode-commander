@@ -12,7 +12,7 @@
     "Chat"
   ],
   "enabledApiProposals": [
-    "lmTools"
+    "lmTools@10"
   ],
   "main": "./dist/extension.js",
   "icon": "images/vscode-commander.png",
