@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { BasePromptElementProps, PromptElement, contentType as promptTsxContentType, renderElementJSON } from '@vscode/prompt-tsx';
-import { pruneToolResult } from './utils';
+import { BasePromptElementProps, PromptElement, renderElementJSON } from '@vscode/prompt-tsx';
 import { Configurations, Command } from '../configurationSearch';
+import { createLanguageModelToolResult } from './utils';
 
 const confirmationSettings: { [key: string]: vscode.LanguageModelToolConfirmationMessages } = {
    'workbench.action.resetViewLocations': {
@@ -71,10 +71,6 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
    }
 
    async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
-      return pruneToolResult(options.requestedContentTypes, await this._invoke(options, token));
-   }
-
-   private async _invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
       // validate parameters
       const commandId = options.parameters.key;
       if (typeof commandId !== 'string' || !commandId.length) {
@@ -120,17 +116,17 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
          message += `The result of executing the command ${resultProps.commandId} is ${JSON.stringify(resultProps.result)}`;
       }
 
-      return {
-         [promptTsxContentType]: await renderElementJSON(RunCommandResult, resultProps, options.tokenOptions, token),
-         'text/plain': message
-      };
+      return createLanguageModelToolResult(
+         await renderElementJSON(RunCommandResult, resultProps, options.tokenizationOptions, token),
+         message
+      );
    }
 
    private async createToolErrorResult(errorMessage: string, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
-      return {
-         [promptTsxContentType]: await renderElementJSON(RunCommandResult, { error: errorMessage }, options.tokenOptions, token),
-         'text/plain': errorMessage
-      };
+      return createLanguageModelToolResult(
+         await renderElementJSON(RunCommandResult, { error: errorMessage }, options.tokenizationOptions, token),
+         errorMessage
+      );
    }
 
    private async parseArguments(argsArray: string | undefined, command: Command, token: vscode.CancellationToken): Promise<{ errorMessage?: string, args?: any[] }> {
