@@ -22,9 +22,6 @@ import {
 	ToolMessage,
 	renderPrompt
 } from '@vscode/prompt-tsx';
-	renderPrompt
-
-const agentSupportedContentTypes = [promptTsxContentType, 'text/plain'];
 
 export interface TsxToolUserMetadata {
 	readonly toolCallsMetadata: ToolCallsMetadata;
