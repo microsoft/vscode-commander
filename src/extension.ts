@@ -15,7 +15,7 @@ const UNDO_SETTINGS_UPDATES_COMMAND_ID = 'vscode-commander.undo-settings-updates
 export function activate(context: vscode.ExtensionContext) {
 	const updatedSettings: { key: string, oldValue: any, newValue: any }[] = [];
 	const ranCommands: { key: string, arguments: any }[] = [];
-	const chatContext: { prompt: string } = { prompt: '' }; // TODO@benibenj remove this when structural output is supported
+	const chatContext: { prompt: string } = { prompt: '' };
 
 	const logger = vscode.window.createOutputChannel('VS Code Commander', { log: true });
 	const configurations = new Configurations(logger);

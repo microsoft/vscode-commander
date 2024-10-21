@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { BasePromptElementProps, PromptElement, contentType as promptTsxContentType, renderElementJSON, TextChunk } from '@vscode/prompt-tsx';
-import { pruneToolResult } from './utils';
+import { BasePromptElementProps, PromptElement, renderElementJSON, TextChunk } from '@vscode/prompt-tsx';
+import { createLanguageModelToolResult } from './utils';
 import { Configurations } from '../configurationSearch';
 
 type Update = { key: string, oldValue: unknown, newValue: unknown };
@@ -96,10 +96,6 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
    }
 
    async invoke(options: vscode.LanguageModelToolInvocationOptions<Record<string, any>>, token: vscode.CancellationToken) {
-      return pruneToolResult(options.requestedContentTypes, await this._invoke(options, token));
-   }
-
-   private async _invoke(options: vscode.LanguageModelToolInvocationOptions<Record<string, any>>, token: vscode.CancellationToken) {
       const settingsToUpdate = this.validateSettings(options.parameters ?? {});
 
       if (settingsToUpdate.length === 0) {
@@ -140,16 +136,16 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
          message += `No changes to ${resultProps.unchanged.length} settings: ${resultProps.unchanged.join(', ')}.`;
       }
 
-      return {
-         [promptTsxContentType]: await renderElementJSON(UpdateSettingsResult, resultProps, options.tokenOptions, token),
-         'text/plain': message
-      };
+      return createLanguageModelToolResult(
+         await renderElementJSON(UpdateSettingsResult, resultProps, options.tokenizationOptions, token),
+         message
+      );
    }
 
    private async createToolErrorResult(errorMessage: string, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
-      return {
-         [promptTsxContentType]: await renderElementJSON(UpdateSettingsResult, { error: errorMessage }, options.tokenOptions, token),
-         'text/plain': errorMessage
-      };
+      return createLanguageModelToolResult(
+         await renderElementJSON(UpdateSettingsResult, { error: errorMessage }, options.tokenizationOptions, token),
+         errorMessage
+      );
    }
 }

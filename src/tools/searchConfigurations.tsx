@@ -5,8 +5,8 @@
 
 import * as vscode from 'vscode';
 import { Command, Configurations, Setting } from '../configurationSearch';
-import { BasePromptElementProps, PromptElement, contentType as promptTsxContentType, renderElementJSON } from '@vscode/prompt-tsx';
-import { pruneToolResult } from './utils';
+import { BasePromptElementProps, PromptElement, renderElementJSON } from '@vscode/prompt-tsx';
+import { createLanguageModelToolResult } from './utils';
 
 type SearchConfigurationsResults = ((Setting & { currentValue: unknown }) | Command)[];
 
@@ -52,10 +52,6 @@ export class SearchConfigurations implements vscode.LanguageModelTool<{ keywords
 	}
 
 	async invoke(options: vscode.LanguageModelToolInvocationOptions<{ keywords?: string }>, token: vscode.CancellationToken) {
-		return pruneToolResult(options.requestedContentTypes, await this._invoke(options, token));
-	}
-
-	private async _invoke(options: vscode.LanguageModelToolInvocationOptions<{ keywords?: string }>, token: vscode.CancellationToken) {
 		const keywords = options.parameters.keywords;
 		if (!keywords) {
 			return await this.createToolErrorResult('Unable to call searchConfigurations without keywords', options, token);
@@ -86,16 +82,16 @@ export class SearchConfigurations implements vscode.LanguageModelTool<{ keywords
 	}
 
 	private async createToolResult(resultProps: SearchConfigurationsResultSuccessProps, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
-		return {
-			[promptTsxContentType]: await renderElementJSON(SearchConfigurationsResult, resultProps, options.tokenOptions, token),
-			'text/plain': JSON.stringify(resultProps.result)
-		};
+		return createLanguageModelToolResult(
+			await renderElementJSON(SearchConfigurationsResult, resultProps, options.tokenizationOptions, token),
+			JSON.stringify(resultProps.result)
+		);
 	}
 
 	private async createToolErrorResult(errorMessage: string, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
-		return {
-			[promptTsxContentType]: await renderElementJSON(SearchConfigurationsResult, { error: errorMessage }, options.tokenOptions, token),
-			'text/plain': errorMessage
-		};
+		return createLanguageModelToolResult(
+			await renderElementJSON(SearchConfigurationsResult, { error: errorMessage }, options.tokenizationOptions, token),
+			errorMessage
+		);
 	}
 }
