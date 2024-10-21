@@ -8,7 +8,7 @@ import { BasePromptElementProps, PromptElement, renderElementJSON, TextChunk } f
 import { createLanguageModelToolResult } from './utils';
 import { Configurations } from '../configurationSearch';
 
-type Update = { key: string, oldValue: unknown, newValue: unknown };
+type Update = { key: string, oldValue: string, newValue: string };
 
 interface UpdateSettingsResultSuccessProps extends BasePromptElementProps {
    readonly updates: Update[];
@@ -32,7 +32,7 @@ class UpdateSettingsResult extends PromptElement<UpdateSettingsResultProps> {
          return <>{this.props.error}</>;
       } else {
          return <>
-            Updated ${this.props.updates.length} settings:<br />
+            Updated {this.props.updates.length} settings:<br />
             <TextChunk priority={20}>{this.props.updates.map(s => <>- {s.key}: from {s.oldValue} to {s.newValue}<br /></>)}<br /></TextChunk>
             <TextChunk priority={10}>{this.props.unchanged.length > 0 && `There were no changes to ${this.props.unchanged.length} settings: ${this.props.unchanged.join(', ')}.`}</TextChunk>
          </>;
@@ -106,17 +106,20 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
          return await this.createToolErrorResult(`Cancelled`, options, token);
       }
 
-      const updates: { key: string, oldValue: any, newValue: any }[] = [];
+      const updates: { key: string, oldValue: string, newValue: string }[] = [];
       const unchanged: string[] = [];
 
       for (const { key, value } of settingsToUpdate) {
-         const oldValue = vscode.workspace.getConfiguration().get(key);
-         if (oldValue === value) {
+         let oldValue = vscode.workspace.getConfiguration().get(key);
+
+         const oldStringified = JSON.stringify(oldValue);
+         const newStringified = JSON.stringify(value);
+         if (oldStringified === newStringified) {
             unchanged.push(key);
             continue;
          }
 
-         updates.push({ key, oldValue, newValue: value });
+         updates.push({ key, oldValue: oldStringified, newValue: newStringified });
          this.updatedSettings.push({ key, oldValue, newValue: value });
 
          try {
