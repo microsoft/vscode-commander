@@ -57,7 +57,7 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
    ) {
    }
 
-   prepareToolInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken): vscode.ProviderResult<vscode.PreparedToolInvocation> {
+   prepareInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken): vscode.ProviderResult<vscode.PreparedToolInvocation> {
       // validate parameters
       const commandId = options.parameters.key;
       if (typeof commandId !== 'string' || !commandId.length) {
