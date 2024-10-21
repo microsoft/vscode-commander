@@ -8,7 +8,7 @@ import { BasePromptElementProps, PromptElement, renderElementJSON } from '@vscod
 import { Configurations, Command } from '../configurationSearch';
 import { createLanguageModelToolResult } from './utils';
 
-const confirmationSettings: { [key: string]: vscode.LanguageModelToolConfirmationMessages } = {
+const commandsRequiringConfirmation: { [key: string]: vscode.LanguageModelToolConfirmationMessages } = {
    'workbench.action.resetViewLocations': {
       title: 'Reset View Locations',
       message: 'This will reset all views to their default locations. Are you sure you want to do this?',
@@ -66,7 +66,7 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
 
       return {
          invocationMessage: `Running \`${commandId}\``,
-         confirmationMessages: confirmationSettings[commandId]
+         confirmationMessages: commandsRequiringConfirmation[commandId]
       };
    }
 
@@ -201,7 +201,7 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
 
       let userMessage = '';
       userMessage += `Given the users prompt, are the provided argumnts for the ${key} command valid in regards to the argument schema? `;
-      userMessage += `Use step by step reasoning to explain your answer. If the argument is valid retur VALID, if the argument is not valid return INVALID\n\n`;
+      userMessage += `Use step by step reasoning to explain your answer. If the argument is valid return VALID, if the argument is not valid return INVALID\n\n`;
       userMessage += `User Prompt: ${this.chatContext.prompt}\n\n`;
       userMessage += `Argument Provided: ${JSON.stringify(argument)}\n\n`;
       userMessage += `Arguments Schema: ${argsSchema}`;
