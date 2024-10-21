@@ -7,7 +7,6 @@ import * as vscode from 'vscode';
 import { SearchConfigurations } from './tools/searchConfigurations';
 import { UpdateSettings } from './tools/updateSettings';
 import { RunCommand } from './tools/runCommands';
-import { PromptElementJSON } from '@vscode/prompt-tsx/dist/base/jsonTypes';
 import { ChatResponsePart } from '@vscode/prompt-tsx/dist/base/vscodeTypes';
 import {
 	AssistantMessage,
@@ -22,6 +21,7 @@ import {
 	ToolMessage,
 	renderPrompt
 } from '@vscode/prompt-tsx';
+import { getTsxDataFromToolsResult } from './tools/utils';
 
 export interface TsxToolUserMetadata {
 	readonly toolCallsMetadata: ToolCallsMetadata;
@@ -95,7 +95,7 @@ class ToolCallElement extends PromptElement<ToolCallElementProps, void> {
 		const toolResult = this.props.toolCallResult ??
 			await vscode.lm.invokeTool(this.props.toolCall.name, { parameters: this.props.toolCall.parameters, toolInvocationToken: this.props.toolInvocationToken, tokenizationOptions }, new vscode.CancellationTokenSource().token);
 
-		const data = toolResult.content.find(part => part instanceof vscode.LanguageModelPromptTsxPart);
+		const data = getTsxDataFromToolsResult(toolResult);
 		if (!data) {
 			console.error(`Tool result does not contain a TSX part: ${this.props.toolCall.name}`);
 			return <ToolMessage toolCallId={this.props.toolCall.callId}>Tool result does not contain a TSX part</ToolMessage>;
@@ -103,7 +103,7 @@ class ToolCallElement extends PromptElement<ToolCallElementProps, void> {
 
 		return <ToolMessage toolCallId={this.props.toolCall.callId}>
 			<meta value={new ToolResultMetadata(this.props.toolCall.callId, toolResult)}></meta>
-			<elementJSON data={data.value as PromptElementJSON}></elementJSON>
+			<elementJSON data={data}></elementJSON>
 		</ToolMessage>;
 	}
 }
