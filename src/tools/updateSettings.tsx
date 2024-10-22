@@ -141,14 +141,12 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
 
       return createLanguageModelToolResult(
          await renderElementJSON(UpdateSettingsResult, resultProps, options.tokenizationOptions, token),
-         message
       );
    }
 
    private async createToolErrorResult(errorMessage: string, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
       return createLanguageModelToolResult(
          await renderElementJSON(UpdateSettingsResult, { error: errorMessage }, options.tokenizationOptions, token),
-         errorMessage
       );
    }
 }
