@@ -273,7 +273,7 @@ async function processResponseStream(modelResponse: vscode.LanguageModelChatResp
 				const configurationId = match[1];
 				textResponse += buffer; // Do not annotate the ids in the response string
 
-				const renderedConfigurationId = await renderConfigurationId(configurationId, configurations);
+				const renderedConfigurationId = renderConfigurationId(configurationId, configurations);
 				buffer = buffer.replace(configurationIdWithBackticks, renderedConfigurationId);
 				markdownString.appendMarkdown(buffer);
 
@@ -310,20 +310,16 @@ async function processResponseStream(modelResponse: vscode.LanguageModelChatResp
 	return { textResponse, toolCalls };
 }
 
-async function renderConfigurationId(configurationId: string, configurations: Configurations): Promise<string> {
-	const configs = await configurations.search(configurationId, 2); // TODO: Add configuration lookup without using search
-	if (configs.length !== 1) {
-		return `\`${configurationId}\``;
+function renderConfigurationId(potentialConfigurationId: string, configurations: Configurations): string {
+	const setting = configurations.getSetting(potentialConfigurationId);
+	if (setting) {
+		return `[\`${setting.key}\`](command:workbench.action.openSettings?%5B%22${setting.key}%22%5D "Open Setting")`;
 	}
 
-	const [config] = configs;
-	if (config.type === 'setting') {
-		return `[\`${config.key}\`](command:workbench.action.openSettings?%5B%22${config.key}%22%5D "Open Setting")`;
+	const command = configurations.getCommand(potentialConfigurationId);
+	if (command) {
+		return `[\`${command.key}\`](command:workbench.action.openGlobalKeybindings?%5B%22${command.key}%22%5D "Open Keyboard Shortcuts")`;
 	}
 
-	if (config.type === 'command') {
-		return `[\`${config.key}\`](command:workbench.action.openGlobalKeybindings?%5B%22${config.key}%22%5D "Open Keyboard Shortcuts")`;
-	}
-
-	return `\`${configurationId}\``;
+	return `\`${potentialConfigurationId}\``;
 }
