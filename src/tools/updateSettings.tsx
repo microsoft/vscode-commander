@@ -69,8 +69,8 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
       // Check if a settings is restricted. If so, create the confirmation message
       let message = new vscode.MarkdownString('', true);
       for (const { key, value } of settingsToUpdate) {
-         const setting = (await this.configurations.search(key, 1))[0];
-         if (!setting || setting.type !== 'setting' || !setting.restricted) {
+         const setting = this.configurations.getSetting(key);
+         if (!setting || !setting.restricted) {
             continue;
          }
 

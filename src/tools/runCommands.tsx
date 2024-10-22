@@ -78,11 +78,10 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
       }
 
       // Make sure the command exists
-      const commands = await this.configurations.search(commandId, 1) as Command[];
-      if (commands.length === 0) {
+      const command = await this.configurations.getCommand(commandId);
+      if (!command) {
          return await this.createToolErrorResult(`Command ${commandId} not found`, options, token);
       }
-      const [command] = commands;
 
       // Parse arguments
       const parsedArgs = await this.parseArguments(options.parameters.argumentsArray, command, token);

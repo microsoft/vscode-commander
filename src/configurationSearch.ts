@@ -28,6 +28,9 @@ export class Configurations implements vscode.Disposable {
 
 	private readonly miniSearch: MiniSearch<Searchables<Setting | Command>>;
 
+	private readonly settings = new Map<string, Setting>();
+	private readonly commands = new Map<string, Command>();
+
 	private initPromise: Promise<void> | undefined;
 	private disposables: vscode.Disposable[] = [];
 
@@ -111,6 +114,8 @@ export class Configurations implements vscode.Disposable {
 			});
 		}
 
+		searchableSettings.forEach(setting => this.settings.set(setting.key, setting.object));
+
 		return searchableSettings;
 	}
 
@@ -188,6 +193,8 @@ export class Configurations implements vscode.Disposable {
 			});
 		}
 
+		searchableCommands.forEach(command => this.commands.set(command.key, command.object));
+
 		return searchableCommands;
 	}
 
@@ -202,6 +209,14 @@ export class Configurations implements vscode.Disposable {
 		}
 
 		return results.slice(0, limit).map(result => result.object);
+	}
+
+	getSetting(key: string): Setting | undefined {
+		return this.settings.get(key);
+	}
+
+	getCommand(key: string): Command | undefined {
+		return this.commands.get(key);
 	}
 
 	dispose() {
