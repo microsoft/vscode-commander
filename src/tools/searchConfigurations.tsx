@@ -84,14 +84,12 @@ export class SearchConfigurations implements vscode.LanguageModelTool<{ keywords
 	private async createToolResult(resultProps: SearchConfigurationsResultSuccessProps, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
 		return createLanguageModelToolResult(
 			await renderElementJSON(SearchConfigurationsResult, resultProps, options.tokenizationOptions, token),
-			JSON.stringify(resultProps.result)
 		);
 	}
 
 	private async createToolErrorResult(errorMessage: string, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
 		return createLanguageModelToolResult(
 			await renderElementJSON(SearchConfigurationsResult, { error: errorMessage }, options.tokenizationOptions, token),
-			errorMessage
 		);
 	}
 }

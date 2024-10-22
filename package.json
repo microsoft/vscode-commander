@@ -5,14 +5,11 @@
   "description": "Enables users to configure VS Code using chat. The extension allows to search for settings and commands and reason about them. The settings values can easily be updated and commands can be run.",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.94.0"
+    "vscode": "^1.95.0-20241022"
   },
   "categories": [
     "AI",
     "Chat"
-  ],
-  "enabledApiProposals": [
-    "lmTools@10"
   ],
   "main": "./dist/extension.js",
   "icon": "images/vscode-commander.png",
@@ -37,10 +34,6 @@
         "name": "searchConfigurations",
         "displayName": "Search Configurations",
         "modelDescription": "Use this tool to search for settings and commands. This will return all those settings and commands that contain the provided keywords. Each result will have a type to know if it is a setting or a command. A setting includes the description, default value, current value and other possible values and a command includes the description and possible arguments to be used to invoke the command.",
-        "supportedContentTypes": [
-          "application/vnd.codechat.prompt+json.1",
-          "text/plain"
-        ],
         "parametersSchema": {
           "type": "object",
           "properties": {
@@ -58,10 +51,6 @@
         "name": "updateSettings",
         "displayName": "Update settings",
         "modelDescription": "Use this tool to update settings. This tool support bulk updates, so you can update multiple settings at once. Provide the settings to update as a key value pair of setting id and new value. The value of the setting must follow the setting schema.",
-        "supportedContentTypes": [
-          "application/vnd.codechat.prompt+json.1",
-          "text/plain"
-        ],
         "tags": [
           "commander"
         ],
@@ -76,10 +65,6 @@
         "name": "runCommand",
         "displayName": "Run command",
         "modelDescription": "Use this tool to run a command. This tool will run the command with the provided arguments if the command supports them. The arguments must follow the command arguments schema provided by the searchConfigurations.",
-        "supportedContentTypes": [
-          "application/vnd.codechat.prompt+json.1",
-          "text/plain"
-        ],
         "tags": [
           "commander"
         ],

@@ -118,14 +118,12 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
 
       return createLanguageModelToolResult(
          await renderElementJSON(RunCommandResult, resultProps, options.tokenizationOptions, token),
-         message
       );
    }
 
    private async createToolErrorResult(errorMessage: string, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
       return createLanguageModelToolResult(
          await renderElementJSON(RunCommandResult, { error: errorMessage }, options.tokenizationOptions, token),
-         errorMessage
       );
    }
 

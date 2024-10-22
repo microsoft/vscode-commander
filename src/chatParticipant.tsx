@@ -219,7 +219,7 @@ export default function (
 			}
 
 			logger.trace('sending request to the model');
-			const modelResponse = await model.sendRequest(messages, { tools }, token);
+			const modelResponse = await model.sendRequest(messages as any /*TO BE REMOVED WHEN PROMPT-TSX UPDATES TO 0.3.0-alpha.9*/, { tools }, token);
 			logger.info('model responded.');
 
 			const { textResponse, toolCalls } = await processResponseStream(modelResponse, response, configurations);
