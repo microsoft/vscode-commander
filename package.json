@@ -57,8 +57,7 @@
         "parametersSchema": {
           "type": "object",
           "description": "Dictionary of settings to update. The key is the setting id and the value is the new value of the setting.",
-          "properties": {},
-          "additionalProperties": true
+          "properties": {}
         }
       },
       {
@@ -113,7 +112,7 @@
     "webpack-cli": "^5.1.4"
   },
   "dependencies": {
-    "@vscode/prompt-tsx": "^0.3.0-alpha.8",
+    "@vscode/prompt-tsx": "^0.3.0-alpha.11",
     "jsonc-parser": "^3.3.1",
     "minisearch": "^7.1.0"
   }
