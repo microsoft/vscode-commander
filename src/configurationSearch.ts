@@ -202,12 +202,15 @@ export class Configurations implements vscode.Disposable {
 		await this.init();
 
 		// search for exact match on key
-		let results = this.miniSearch.search(keywords, { fields: ['key'], prefix: true, filter: (result => result.key === keywords) });
-		if (results.length === 0) {
-			// search based on configuration id and description
-			results = this.miniSearch.search(keywords, { fields: ['key', 'description'] });
+		if (this.settings.has(keywords)) {
+			return [this.settings.get(keywords)!];
 		}
 
+		if (this.commands.has(keywords)) {
+			return [this.commands.get(keywords)!];
+		}
+
+		const results = this.miniSearch.search(keywords, { fields: ['key', 'description'] });
 		return results.slice(0, limit).map(result => result.object);
 	}
 
