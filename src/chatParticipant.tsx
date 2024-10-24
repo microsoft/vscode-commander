@@ -281,7 +281,7 @@ async function processResponseStream(modelResponse: vscode.LanguageModelChatResp
 				backtickPattern.lastIndex = 0;
 			}
 			// Output everything if no backtick found
-			else if (lastBacktickIndex === -1 || buffer.length > 80 /*If buffer is to large, flush it. Commands/Settings are shorter*/) {
+			else if (lastBacktickIndex === -1 || buffer.length > 80 /*If buffer is too large, flush it. Commands/Settings are shorter*/) {
 				textResponse += buffer;
 				markdownString.appendMarkdown(buffer);
 				buffer = "";

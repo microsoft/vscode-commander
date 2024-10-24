@@ -125,7 +125,7 @@ export class Configurations implements vscode.Disposable {
 			vscode.workspace.openTextDocument(keybindingsSchemaResource),
 		]);
 		const keybindingsSchema: IJSONSchema = JSON.parse(keybindingsSchemaResourceDocument.getText());
-		const defaultKeybindingsDocumennt: IUserFriendlyKeybinding[] = jsonc.parse(defaultKeybindingsDocument.getText());
+		const defaultKeybindings: IUserFriendlyKeybinding[] = jsonc.parse(defaultKeybindingsDocument.getText());
 
 		// Find all commands with arguments
 		const commandsWithArgs = new Map<string, IJSONSchema>();
@@ -186,7 +186,7 @@ export class Configurations implements vscode.Disposable {
 					key: commandId,
 					description: commandDescription,
 					type: 'command',
-					keybinding: defaultKeybindingsDocumennt.find(keybinding => keybinding.command === commandId)?.key,
+					keybinding: defaultKeybindings.find(keybinding => keybinding.command === commandId)?.key,
 					argsSchema: commandId === 'vscode.setEditorLayout' ? commandDescription : argsSchema,
 					hasArguments: argsSchema === undefined ? false : undefined,
 				}
