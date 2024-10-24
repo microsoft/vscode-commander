@@ -29,7 +29,7 @@
         "id": "vscode-commander",
         "fullName": "VS Code Commander",
         "name": "commander",
-        "description": "Assistant for configuring and managing VS Code.",
+        "description": "Assistant for configuring VS Code.",
         "isSticky": true
       }
     ],
