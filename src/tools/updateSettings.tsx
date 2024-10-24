@@ -9,10 +9,11 @@ import { createLanguageModelToolResult } from './utils';
 import { Configurations } from '../configurationSearch';
 
 type Update = { key: string, oldValue: string, newValue: string };
+type Unchanged = { key: string, value: string };
 
 interface UpdateSettingsResultSuccessProps extends BasePromptElementProps {
    readonly updates: Update[];
-   readonly unchanged: string[];
+   readonly unchanged: Unchanged[];
 }
 
 interface UpdateSettingsResultErrorProps extends BasePromptElementProps {
@@ -26,15 +27,31 @@ function isSuccess(props: UpdateSettingsResultProps): props is UpdateSettingsRes
 }
 
 class UpdateSettingsResult extends PromptElement<UpdateSettingsResultProps> {
-
    render() {
+      // Error
       if (!isSuccess(this.props)) {
          return <>{this.props.error}</>;
-      } else {
+      }
+      // 1 setting updated
+      else if (this.props.updates.length === 1 && this.props.unchanged.length === 0) {
+         const update = this.props.updates[0];
+         return <>
+            Updated setting {update.key} from {update.oldValue} to {update.newValue}.
+         </>;
+      }
+      // 1 setting unchanged
+      else if (this.props.updates.length === 0 && this.props.unchanged.length === 1) {
+         const unchanged = this.props.unchanged[0];
+         return <>
+            The setting {unchanged.key} remains unchanged with value {unchanged.value}.
+         </>;
+      }
+      // Multiple settings updated/unchanged
+      else {
          return <>
             Updated {this.props.updates.length} settings:<br />
             <TextChunk priority={20}>{this.props.updates.map(s => <>- {s.key}: from {s.oldValue} to {s.newValue}<br /></>)}<br /></TextChunk>
-            <TextChunk priority={10}>{this.props.unchanged.length > 0 && `There were no changes to ${this.props.unchanged.length} settings: ${this.props.unchanged.join(', ')}.`}</TextChunk>
+            <TextChunk priority={10}>{this.props.unchanged.length > 0 && `There were no changes to ${this.props.unchanged.length} settings: ${this.props.unchanged.map(s => s.key).join(', ')}.`}</TextChunk>
          </>;
       }
    }
@@ -106,8 +123,8 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
          return await this.createToolErrorResult(`Cancelled`, options, token);
       }
 
-      const updates: { key: string, oldValue: string, newValue: string }[] = [];
-      const unchanged: string[] = [];
+      const updates: Update[] = [];
+      const unchanged: Unchanged[] = [];
 
       for (const { key, value } of settingsToUpdate) {
          let oldValue = vscode.workspace.getConfiguration().get(key);
@@ -115,7 +132,7 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
          const oldStringified = JSON.stringify(oldValue);
          const newStringified = JSON.stringify(value);
          if (oldStringified === newStringified) {
-            unchanged.push(key);
+            unchanged.push({ key, value: oldStringified });
             continue;
          }
 
@@ -134,11 +151,6 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
    }
 
    private async createToolResult(resultProps: UpdateSettingsResultSuccessProps, options: vscode.LanguageModelToolInvocationOptions<unknown>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
-      let message = `Updated ${resultProps.updates.length} settings: ${resultProps.updates.map(s => `${s.key} from ${s.oldValue} to ${s.newValue}`).join(', ')}. `;
-      if (resultProps.unchanged.length) {
-         message += `No changes to ${resultProps.unchanged.length} settings: ${resultProps.unchanged.join(', ')}.`;
-      }
-
       return createLanguageModelToolResult(
          await renderElementJSON(UpdateSettingsResult, resultProps, options.tokenizationOptions, token),
       );

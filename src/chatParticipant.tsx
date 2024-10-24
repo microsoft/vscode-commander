@@ -161,9 +161,10 @@ class CommanderPrompt extends PromptElement<CommanderPromptProps, void> {
 				1. Come up with keywords, phrases and synonyms that you think the user might use to describe the action they want to perform.<br />
 				2. Use the {SearchConfigurations.ID} tool to find configurations that match with the keywords you found in step 1. Only use the {SearchConfigurations.ID} tool once.<br />
 				3. Look for the most appropriate setting or command that matches the user's intent. Prefer setting over command if available.<br />
-				4. Use the {UpdateSettings.ID} tool to update the setting to the value the user requested. If there are multiple settings to update, update them in bulk. Always tell the user what the new value is.<br />
-				5. Use the {RunCommand.ID} tool to run a command found using the {SearchConfigurations.ID}. Always tell the user what the keybinding is for the command if applicable.<br />
-				6. Never ask the user whether they think you should perform the action or suggest actions, YOU JUST DO IT!!!
+				4. Use the {UpdateSettings.ID} tool to update the setting to the value the user requested. If there are multiple settings to update, update them in bulk.<br />
+				5. Always inform the user of each updated setting, including the setting ID and the new value.<br />
+				6. Use the {RunCommand.ID} tool to run a command found using the {SearchConfigurations.ID}. Always tell the user what the keybinding is for the command if applicable.<br />
+				7. Never ask the user whether they think you should perform the action or suggest actions, YOU JUST DO IT!!!
 			</UserMessage>
 			<UserMessage>{this.props.request.prompt}</UserMessage>
 			<ToolCalls

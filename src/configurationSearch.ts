@@ -235,7 +235,7 @@ function enumsDescription(enumKeys: string[], enumDescriptions: string[]): strin
 	const prefix = 'Allowed Enums:\n';
 	const enumsDescriptions = enumKeys.map((enumKey, index) => {
 		const enumDescription = enumDescriptions[index];
-		return enumKey + enumDescription ? `: ${enumDescription}` : '';
+		return enumKey + (enumDescription ? `: ${enumDescription}` : '');
 	}).join('\n');
 
 	return prefix + enumsDescriptions;
