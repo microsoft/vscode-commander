@@ -197,7 +197,7 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
       const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4o' });
 
       let userMessage = '';
-      userMessage += `Given the users prompt, are the provided argumnts for the ${key} command valid in regards to the argument schema? `;
+      userMessage += `Given the user's prompt, are the provided arguments for the ${key} command valid in regards to the argument schema? `;
       userMessage += `Use step by step reasoning to explain your answer. If the argument is valid return VALID, if the argument is not valid return INVALID\n\n`;
       userMessage += `User Prompt: ${this.chatContext.prompt}\n\n`;
       userMessage += `Argument Provided: ${JSON.stringify(argument)}\n\n`;

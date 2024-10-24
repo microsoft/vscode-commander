@@ -26,10 +26,10 @@
     ],
     "chatParticipants": [
       {
-        "id": "vscode-commader",
+        "id": "vscode-commander",
         "fullName": "VS Code Commander",
         "name": "commander",
-        "description": "VS Code Commander",
+        "description": "Assistant for configuring VS Code.",
         "isSticky": true
       }
     ],
