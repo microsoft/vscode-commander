@@ -17,6 +17,20 @@ const commandsRequiringConfirmation: { [key: string]: vscode.LanguageModelToolCo
 
 const commandsWithComplexArguments = new Set(['vscode.setEditorLayout']);
 
+const complexArgumentSetterTool: vscode.LanguageModelChatTool = {
+   name: 'SetArgument',
+   description: 'Use this tool to set the argument for the command',
+   parametersSchema: {
+      type: "object",
+      properties: {
+         argument: {
+            type: "string",
+            description: "Argument to pass to the command",
+         }
+      }
+   }
+};
+
 interface RunCommandResultSuccessProps extends BasePromptElementProps {
    readonly commandId: string;
    readonly result: unknown;
@@ -140,9 +154,9 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
 
       // If arguments are complex, we need to make sure they are valid
       if (commandsWithComplexArguments.has(command.key)) {
-         const response = await this.validateComplexArguments(command, args, token);
-         if (typeof response === 'string') {
-            return { 'errorMessage': response };
+         await this.validateComplexArguments(command, args, token);
+         if (token.isCancellationRequested) {
+            return { errorMessage: 'Cancelled' };
          }
       }
 
@@ -155,82 +169,42 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
          (commandId.startsWith('editor') && !commandId.includes('.'));
    }
 
-   private _lastComplexPrompt: string | undefined = undefined;
    /**
     * Processes complex arguments for a given command and validates them against a schema.
     * @returns A promise that resolves to `true` if the arguments are valid, or a string with an error message if invalid.
    */
-   private async validateComplexArguments(command: Command, args: any[], token: vscode.CancellationToken): Promise<true | string> {
-      if (this._lastComplexPrompt === this.chatContext.prompt) {
-         return true;
-      }
-      this._lastComplexPrompt = this.chatContext.prompt;
-
+   private async validateComplexArguments(command: Command, args: any[], token: vscode.CancellationToken): Promise<void> {
       const argsSchema = command.argsSchema && typeof command.argsSchema !== 'string' ? JSON.stringify(command.argsSchema) : command.argsSchema;
       if (!argsSchema) {
-         return true;
+         return;
       }
 
       // TODO support multiple arguments
-      const isValid = await this.validateArguments(command.key, args[0], argsSchema);
-      if (token.isCancellationRequested) {
-         return 'Cancelled';
-      }
-      if (isValid) {
-         return true;
-      }
-
-      const suggestedArguments = await this.suggestArguments(command.key, argsSchema);
-      if (token.isCancellationRequested) {
-         return 'Cancelled';
-      }
-
-      let responseMessage = '';
-      responseMessage += `The arguments provided for the ${command.key} command are invalid in regards to the user prompt. `;
-      responseMessage += `Run the ${RunCommand.ID} tool again with valid arguments. `;
-      responseMessage += `The arguments schema is ${argsSchema}. `;
-      responseMessage += `Here is a hint: ${suggestedArguments}`;
-      return responseMessage;
+      args[0] = await this.validateArguments(command.key, args[0], argsSchema, token);
    }
 
-   private async validateArguments(key: string, argument: string, argsSchema: string): Promise<boolean> {
+   private async validateArguments(key: string, argument: any, argsSchema: string, token: vscode.CancellationToken): Promise<any> {
       const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4o' });
 
       let userMessage = '';
-      userMessage += `Given the user's prompt, are the provided arguments for the ${key} command valid in regards to the argument schema? `;
-      userMessage += `Use step by step reasoning to explain your answer. If the argument is valid return VALID, if the argument is not valid return INVALID\n\n`;
+      userMessage += `Given the users prompt, provide the arguments for the ${key} command in regards to the argument schema.`;
+      userMessage += `Use step by step reasoning to explain your answer. When done, set the argument using the ${complexArgumentSetterTool.name} command.\n\n`;
       userMessage += `User Prompt: ${this.chatContext.prompt}\n\n`;
-      userMessage += `Argument Provided: ${JSON.stringify(argument)}\n\n`;
       userMessage += `Arguments Schema: ${argsSchema}`;
-      const response = await model.sendRequest([vscode.LanguageModelChatMessage.User(userMessage)]);
 
-      let responseMessage = '';
+      const response = await model.sendRequest([vscode.LanguageModelChatMessage.User(userMessage)], { tools: [complexArgumentSetterTool], toolMode: vscode.LanguageModelChatToolMode.Required }, token);
+
       for await (const message of response.stream) {
-         if (message instanceof vscode.LanguageModelTextPart) {
-            responseMessage += message.value;
+         if (!(message instanceof vscode.LanguageModelToolCallPart)) {
+            continue;
+         }
+
+         if ('argument' in message.parameters && typeof message.parameters.argument === 'string') {
+            argument = JSON.parse(message.parameters.argument);
+            break;
          }
       }
 
-      return !responseMessage.includes('INVALID');
-   }
-
-   private async suggestArguments(key: string, argsSchema: string): Promise<string> {
-      const [model] = await vscode.lm.selectChatModels({ family: 'gpt-4o' });
-
-      let userMessage = '';
-      userMessage += `Given the users prompt, generate the correct arguments for the ${key} command. `;
-      userMessage += `Use step by step reasoning to generate the arguments based on the arguments schema\n\n`;
-      userMessage += `User Prompt: ${this.chatContext.prompt}\n\n`;
-      userMessage += `Arguments Schema: ${argsSchema}`;
-      const response = await model.sendRequest([vscode.LanguageModelChatMessage.User(userMessage)]);
-
-      let responseMessage = '';
-      for await (const message of response.stream) {
-         if (message instanceof vscode.LanguageModelTextPart) {
-            responseMessage += message.value;
-         }
-      }
-
-      return responseMessage;
+      return argument;
    }
 }
