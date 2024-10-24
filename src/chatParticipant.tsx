@@ -50,7 +50,7 @@ class History extends PromptElement<HistoryProps, void> {
 	render() {
 		return (
 			<PrioritizedList priority={this.props.priority} descending={false}>
-				{this.props.context.history.map((turn) => {
+				{this.props.context.history.slice(0, 6).map((turn) => {
 					if (turn instanceof vscode.ChatRequestTurn) {
 						return <UserMessage>{turn.prompt}</UserMessage>;
 					} else if (turn instanceof vscode.ChatResponseTurn) {
@@ -154,6 +154,7 @@ class CommanderPrompt extends PromptElement<CommanderPromptProps, void> {
 
 	render(state: void, sizing: PromptSizing, progress?: vscode.Progress<ChatResponsePart>, token?: vscode.CancellationToken) {
 		return <>
+			<History context={this.props.context} priority={10} />
 			<UserMessage>
 				You are a VS Code commander, tasked with performing actions in VS Code using the provided tools. You must always execute the following steps:<br />
 				0. IMPORTANT: Never guess or rely from history or memory.<br />
@@ -164,7 +165,6 @@ class CommanderPrompt extends PromptElement<CommanderPromptProps, void> {
 				5. Use the {RunCommand.ID} tool to run a command found using the {SearchConfigurations.ID}. Always tell the user what the keybinding is for the command if applicable.<br />
 				6. Never ask the user whether they think you should perform the action or suggest actions, YOU JUST DO IT!!!
 			</UserMessage>
-			<History context={this.props.context} priority={10} />
 			<UserMessage>{this.props.request.prompt}</UserMessage>
 			<ToolCalls
 				toolCallRounds={this.props.toolCallRounds}
