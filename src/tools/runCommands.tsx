@@ -20,7 +20,7 @@ const commandsWithComplexArguments = new Set(['vscode.setEditorLayout']);
 const complexArgumentSetterTool: vscode.LanguageModelChatTool = {
    name: 'SetArgument',
    description: 'Use this tool to set the argument for the command',
-   parametersSchema: {
+   inputSchema: {
       type: "object",
       properties: {
          argument: {
@@ -73,7 +73,7 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
 
    prepareInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken): vscode.ProviderResult<vscode.PreparedToolInvocation> {
       // validate parameters
-      const commandId = options.parameters.key;
+      const commandId = options.input.key;
       if (typeof commandId !== 'string' || !commandId.length) {
          return undefined;
       }
@@ -86,7 +86,7 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
 
    async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
       // validate parameters
-      const commandId = options.parameters.key;
+      const commandId = options.input.key;
       if (typeof commandId !== 'string' || !commandId.length) {
          return await this.createToolErrorResult('Not able to change because the parameter is missing or invalid', options, token);
       }
@@ -98,7 +98,7 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
       }
 
       // Parse arguments
-      const parsedArgs = await this.parseArguments(options.parameters.argumentsArray, command, token);
+      const parsedArgs = await this.parseArguments(options.input.argumentsArray, command, token);
       if (parsedArgs.errorMessage) {
          return await this.createToolErrorResult(parsedArgs.errorMessage, options, token);
       }
@@ -199,8 +199,8 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
             continue;
          }
 
-         if ('argument' in message.parameters && typeof message.parameters.argument === 'string') {
-            argument = JSON.parse(message.parameters.argument);
+         if ('argument' in message.input && typeof message.input.argument === 'string') {
+            argument = JSON.parse(message.input.argument);
             break;
          }
       }
