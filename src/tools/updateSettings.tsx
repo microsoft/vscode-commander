@@ -77,7 +77,7 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
    }
 
    async prepareInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<Record<string, any>>, token: vscode.CancellationToken): Promise<vscode.PreparedToolInvocation | undefined> {
-      const settingsToUpdate = this.validateSettings(options.parameters ?? {});
+      const settingsToUpdate = this.validateSettings(options.input ?? {});
 
       if (settingsToUpdate.length === 0) {
          return undefined;
@@ -113,7 +113,7 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
    }
 
    async invoke(options: vscode.LanguageModelToolInvocationOptions<Record<string, any>>, token: vscode.CancellationToken) {
-      const settingsToUpdate = this.validateSettings(options.parameters ?? {});
+      const settingsToUpdate = this.validateSettings(options.input ?? {});
 
       if (settingsToUpdate.length === 0) {
          return await this.createToolErrorResult('No settings to update', options, token);

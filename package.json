@@ -38,7 +38,7 @@
         "name": "searchConfigurations",
         "displayName": "Search Configurations",
         "modelDescription": "Use this tool to search for settings and commands. This will return all those settings and commands that contain the provided keywords. Each result will have a type to know if it is a setting or a command. A setting includes the description, default value, current value and other possible values and a command includes the description and possible arguments to be used to invoke the command.",
-        "parametersSchema": {
+        "inputSchema": {
           "type": "object",
           "properties": {
             "keywords": {
@@ -58,7 +58,7 @@
         "tags": [
           "commander"
         ],
-        "parametersSchema": {
+        "inputSchema": {
           "type": "object",
           "description": "Dictionary of settings to update. The key is the setting id and the value is the new value of the setting.",
           "properties": {}
@@ -71,7 +71,7 @@
         "tags": [
           "commander"
         ],
-        "parametersSchema": {
+        "inputSchema": {
           "type": "object",
           "properties": {
             "key": {
