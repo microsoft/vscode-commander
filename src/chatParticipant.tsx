@@ -50,14 +50,14 @@ class History extends PromptElement<HistoryProps, void> {
 	render() {
 		return (
 			<PrioritizedList priority={this.props.priority} descending={false}>
-				{this.props.context.history.slice(0, 6).map((turn) => {
+				{this.props.context.history.map((turn) => {
 					if (turn instanceof vscode.ChatRequestTurn) {
 						return <UserMessage>{turn.prompt}</UserMessage>;
 					} else if (turn instanceof vscode.ChatResponseTurn) {
 						const metadata = turn.result.metadata;
 
 						if (isTsxToolUserMetadata(metadata) && metadata.toolCallsMetadata.toolCallRounds.length > 0) {
-							return <ToolCalls toolCallResults={metadata.toolCallsMetadata.toolCallResults} toolCallRounds={metadata.toolCallsMetadata.toolCallRounds} toolInvocationToken={undefined} />;
+							return;
 						}
 
 						return <AssistantMessage>{
@@ -155,18 +155,26 @@ class CommanderPrompt extends PromptElement<CommanderPromptProps, void> {
 	render(state: void, sizing: PromptSizing, progress?: vscode.Progress<ChatResponsePart>, token?: vscode.CancellationToken) {
 		return <>
 			<History context={this.props.context} priority={10} />
-			<UserMessage>
-				You are a VS Code commander, tasked with performing actions in VS Code using the provided tools. You must always execute the following steps:<br />
-				0. IMPORTANT: Never guess or rely from history or memory.<br />
-				1. Come up with keywords, phrases and synonyms that you think the user might use to describe the action they want to perform.<br />
-				2. Use the {SearchConfigurations.ID} tool to find configurations that match with the keywords you found in step 1. Only use the {SearchConfigurations.ID} tool once.<br />
-				3. Look for the most appropriate setting or command that matches the user's intent. Prefer setting over command if available.<br />
-				4. Use the {UpdateSettings.ID} tool to update the setting to the value the user requested. If there are multiple settings to update, update them in bulk.<br />
-				5. Always inform the user of each updated setting, including the setting ID and the new value.<br />
-				6. Use the {RunCommand.ID} tool to run a command found using the {SearchConfigurations.ID}. Always tell the user what the keybinding is for the command if applicable.<br />
-				7. Never ask the user whether they think you should perform the action or suggest actions, YOU JUST DO IT!!!
-			</UserMessage>
-			<UserMessage>{this.props.request.prompt}</UserMessage>
+			<AssistantMessage>
+				You are an assistant tasked with performing actions in VS Code. You will be given:<br />
+					1. A user's request in natural language<br />
+					2. Set of tools that can be used to perform the appropriate action<br />
+				Your task is to:<br />
+					1. IMPORTANT: Never guess or rely from history or memory.<br />
+					2. Analyze the user's request and come up with keywords, phrases and synonyms that are relevant to VS Code actions, commands, and settings, which describe the action they want to perform.<br />
+					3. Use the {SearchConfigurations.ID} tool to find configurations that match with the keywords you found in previous step. Only use the {SearchConfigurations.ID} tool once.<br />
+					4. Look for the most appropriate setting or command that matches the user's intent. Prefer a setting over a command if the user's request can be achieved by a setting change. Do not do the both to acheive the same result.<br />
+					5. If you choose to update the setting:
+						a. Use the {UpdateSettings.ID} tool to update the setting to the value the user requested. If there are multiple settings to update, update them in bulk.<br />
+						b. Always inform the user of each updated setting, including the setting ID and the new value.<br />
+					6. If you choose to run a command:<br />
+						a. If the command has arguments then use step by step reasoning to generate arguments that match the schema exactly in terms of names, types, and values.<br />
+						b. Ensure the arguments are logically valid based on the user's request and the schema.<br />
+						c. Use the {RunCommand.ID} tool to run a command found using the {SearchConfigurations.ID} tool.<br />
+						d. Always inform the user what the keybinding is for the command, if applicable.<br />
+					10. Never ask the user whether they think you should perform the action or suggest actions, If the user's request is clear, execute the action confidently.
+			</AssistantMessage>
+			<UserMessage>User Request: "{this.props.request.prompt}"</UserMessage>
 			<ToolCalls
 				toolCallRounds={this.props.toolCallRounds}
 				toolInvocationToken={this.props.request.toolInvocationToken}
