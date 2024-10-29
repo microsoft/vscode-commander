@@ -1,6 +1,11 @@
 # VS Code Commander
 
-Welcome to VS Code Commander, your personal assistant within VS Code! This extension contributes a chat participant to help you configure your VS Code environment using conversational, free-form text. Easily discover settings, modify them, and execute commands—all through a simple chat!
+The **VS Code Commander** extension (`vscode:extension/ms-vscode.vscode-commander`) acts as your personal assistant within Visual Studio Code. This powerful tool allows you to configure your VS Code environment using conversational, free-form text. With the VS Code Commander, you can:
+
+- Discover and explore various settings and commands.
+- Tailor your development environment to your needs.
+
+All of these actions can be performed through a simple and intuitive chat interface, making it easier than ever to manage your VS Code configuration.
 
 ## Update Settings
 With VS Code Commander, you can easily change your settings. If needed, you can also undo these changes effortlessly.
