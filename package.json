@@ -9,7 +9,7 @@
     "url": "https://github.com/microsoft/vscode-commander"
   },
   "engines": {
-    "vscode": "^1.95.0-20241022"
+    "vscode": "^1.95.0"
   },
   "categories": [
     "AI",
