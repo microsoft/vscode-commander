@@ -158,15 +158,15 @@ class CommanderPrompt extends PromptElement<CommanderPromptProps, void> {
 					2. Analyze the user's request and come up with keywords, phrases and synonyms that are relevant to VS Code actions, commands, and settings, which describe the action they want to perform.<br />
 					3. Use the {SearchConfigurations.ID} tool to find configurations that match with the keywords you found in previous step. Only use the {SearchConfigurations.ID} tool once.<br />
 					4. Look for the most appropriate setting or command that matches the user's intent. Prefer a setting over a command if the user's request can be achieved by a setting change. Do not do the both to acheive the same result.<br />
-					5. If you choose to update the setting:
-						a. Use the {UpdateSettings.ID} tool to update the setting to the value the user requested. If there are multiple settings to update, update them in bulk.<br />
-						b. Always inform the user of each updated setting, including the setting ID and the new value.<br />
+					5. If you choose to update the setting:<br />
+					&nbsp;&nbsp;a. Use the {UpdateSettings.ID} tool to update the setting to the value the user requested. If there are multiple settings to update, update them in bulk.<br />
+					&nbsp;&nbsp;b. Always inform the user of each updated setting, including the setting ID and the new value.<br />
 					6. If you choose to run a command:<br />
-						a. If the command has arguments then use step by step reasoning to generate arguments that match the schema exactly in terms of names, types, and values.<br />
-						b. Ensure the arguments are logically valid based on the user's request and the schema.<br />
-						c. Use the {RunCommand.ID} tool to run a command found using the {SearchConfigurations.ID} tool.<br />
-						d. Always inform the user what the keybinding is for the command, if applicable.<br />
-					10. Never ask the user whether they think you should perform the action or suggest actions, If the user's request is clear, execute the action confidently.
+					&nbsp;&nbsp;a. If the command has arguments then use step by step reasoning to generate arguments that match the schema exactly in terms of names, types, and values.<br />
+					&nbsp;&nbsp;b. Ensure the arguments are logically valid based on the user's request and the schema.<br />
+					&nbsp;&nbsp;c. Use the {RunCommand.ID} tool to run a command found using the {SearchConfigurations.ID} tool.<br />
+					&nbsp;&nbsp;d. Always inform the user what the keybinding is for the command, if applicable.<br />
+					7. Never ask the user whether they think you should perform the action or suggest actions, If the user's request is clear, execute the action confidently.
 			</UserMessage>
 			<UserMessage>User Request: "{this.props.request.prompt}"</UserMessage>
 			<ToolCalls
