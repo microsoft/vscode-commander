@@ -54,12 +54,6 @@ class History extends PromptElement<HistoryProps, void> {
 					if (turn instanceof vscode.ChatRequestTurn) {
 						return <UserMessage>{turn.prompt}</UserMessage>;
 					} else if (turn instanceof vscode.ChatResponseTurn) {
-						const metadata = turn.result.metadata;
-
-						if (isTsxToolUserMetadata(metadata) && metadata.toolCallsMetadata.toolCallRounds.length > 0) {
-							return;
-						}
-
 						return <AssistantMessage>{
 							turn.response.map(response => {
 								if (response instanceof vscode.ChatResponseMarkdownPart) {
@@ -155,7 +149,7 @@ class CommanderPrompt extends PromptElement<CommanderPromptProps, void> {
 	render(state: void, sizing: PromptSizing, progress?: vscode.Progress<ChatResponsePart>, token?: vscode.CancellationToken) {
 		return <>
 			<History context={this.props.context} priority={10} />
-			<AssistantMessage>
+			<UserMessage>
 				You are an assistant tasked with performing actions in VS Code. You will be given:<br />
 					1. A user's request in natural language<br />
 					2. Set of tools that can be used to perform the appropriate action<br />
@@ -173,7 +167,7 @@ class CommanderPrompt extends PromptElement<CommanderPromptProps, void> {
 						c. Use the {RunCommand.ID} tool to run a command found using the {SearchConfigurations.ID} tool.<br />
 						d. Always inform the user what the keybinding is for the command, if applicable.<br />
 					10. Never ask the user whether they think you should perform the action or suggest actions, If the user's request is clear, execute the action confidently.
-			</AssistantMessage>
+			</UserMessage>
 			<UserMessage>User Request: "{this.props.request.prompt}"</UserMessage>
 			<ToolCalls
 				toolCallRounds={this.props.toolCallRounds}
