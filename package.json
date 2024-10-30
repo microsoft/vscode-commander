@@ -3,7 +3,7 @@
   "publisher": "ms-vscode",
   "displayName": "VS Code Commander",
   "description": "Enables users to configure VS Code using chat. The extension allows to search for settings and commands and reason about them. The settings values can easily be updated and commands can be run.",
-  "version": "0.0.1",
+  "version": "0.2.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/microsoft/vscode-commander"
