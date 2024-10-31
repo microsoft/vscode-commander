@@ -32,5 +32,5 @@ extends:
       - script: npm run compile
         displayName: Compile
 
-      # - script: npm run test
-      #   displayName: Run Tests
+      - script: npm run test
+        displayName: Run Tests
