@@ -77,7 +77,9 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
    }
 
    async prepareInvocation(options: vscode.LanguageModelToolInvocationPrepareOptions<Record<string, any>>, token: vscode.CancellationToken): Promise<vscode.PreparedToolInvocation | undefined> {
+      console.log('UpdateSettings.prepareInvocation', options);
       const settingsToUpdate = this.validateSettings(options.input ?? {});
+      console.log('settingsToUpdate', settingsToUpdate);
 
       if (settingsToUpdate.length === 0) {
          return undefined;
@@ -113,6 +115,7 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
    }
 
    async invoke(options: vscode.LanguageModelToolInvocationOptions<Record<string, any>>, token: vscode.CancellationToken) {
+      console.log('UpdateSettings.invoke', options);
       const settingsToUpdate = this.validateSettings(options.input ?? {});
 
       if (settingsToUpdate.length === 0) {
@@ -141,6 +144,7 @@ export class UpdateSettings implements vscode.LanguageModelTool<Record<string, a
 
          try {
             this.logger.info('Setting', key, 'to', value);
+            console.log('Setting', key, 'to', value);
             await vscode.workspace.getConfiguration().update(key, value, vscode.ConfigurationTarget.Global);
          } catch (e: any) {
             return await this.createToolErrorResult(`Wasn't able to set ${key} to ${value} because of ${e.message}`, options, token);

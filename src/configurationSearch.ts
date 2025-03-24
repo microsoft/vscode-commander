@@ -62,6 +62,7 @@ export class Configurations implements vscode.Disposable {
 				this.logger.info(`Found ${searchableSettings.length} searchable settings`);
 				this.logger.info(`Found ${searchableCommands.length} searchable commands`);
 				this.miniSearch.addAll([...searchableSettings, ...searchableCommands]);
+				console.log('this.miniSearch : ', this.miniSearch);
 			})();
 		}
 		return this.initPromise;
@@ -199,6 +200,8 @@ export class Configurations implements vscode.Disposable {
 	}
 
 	async search(keywords: string, limit: number): Promise<(Setting | Command)[]> {
+		console.log('search keywords: ', keywords);
+		console.log('search limit: ', limit);
 		await this.init();
 
 		// search for exact match on key

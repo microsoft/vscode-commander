@@ -85,24 +85,29 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
    }
 
    async invoke(options: vscode.LanguageModelToolInvocationOptions<{ key?: string, argumentsArray?: string }>, token: vscode.CancellationToken): Promise<vscode.LanguageModelToolResult> {
+      console.log('RunCommand invoked with options:', options);
       // validate parameters
       const commandId = options.input.key;
+      console.log('Command ID:', commandId);
       if (typeof commandId !== 'string' || !commandId.length) {
          return await this.createToolErrorResult('Not able to change because the parameter is missing or invalid', options, token);
       }
 
       // Make sure the command exists
       const command = await this.configurations.getCommand(commandId);
+      console.log('command : ', command);
       if (!command) {
          return await this.createToolErrorResult(`Command ${commandId} not found`, options, token);
       }
 
+      console.log('options.input.argumentsArray : ', options.input.argumentsArray);
       // Parse arguments
       const parsedArgs = await this.parseArguments(options.input.argumentsArray, command, token);
       if (parsedArgs.errorMessage) {
          return await this.createToolErrorResult(parsedArgs.errorMessage, options, token);
       }
       const args = parsedArgs.args ?? [];
+      console.log('Parsed arguments:', args);
 
       this.logger.info(`Running ${command.key}` + (args.length ? ` with args ${JSON.stringify(args)}` : ''));
 
@@ -115,6 +120,7 @@ export class RunCommand implements vscode.LanguageModelTool<{ key?: string, argu
          }
 
          result = await vscode.commands.executeCommand(command.key, ...args);
+         console.log('Command result:', result);
          this.ranCommands.push({ key: command.key, arguments: args });
       } catch (e: any) {
          return await this.createToolErrorResult(`Wasn't able to run ${command.key} because of ${e.message}`, options, token);

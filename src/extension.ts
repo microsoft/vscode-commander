@@ -13,6 +13,7 @@ import createChatParticipant from './chatParticipant';
 const UNDO_SETTINGS_UPDATES_COMMAND_ID = 'vscode-commander.undo-settings-updates';
 
 export function activate(context: vscode.ExtensionContext) {
+	console.log('activing vscode-commander extension');
 	const updatedSettings: { key: string, oldValue: any, newValue: any }[] = [];
 	const ranCommands: { key: string, arguments: any }[] = [];
 	const chatContext: { prompt: string } = { prompt: '' };
